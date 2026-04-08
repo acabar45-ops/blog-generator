@@ -54,7 +54,7 @@ st.markdown("""
 /* 사이드바·위젯만 13px (블로그 미리보기에 영향 없도록) */
 section[data-testid="stSidebar"] { font-size: 13px; }
 section[data-testid="stSidebar"] * { font-size: inherit; }
-section[data-testid="stSidebar"] { width: 304px !important; }
+section[data-testid="stSidebar"] { width: 334px !important; }
 section[data-testid="stSidebar"] .stButton button {
     font-size: 11px !important; padding: 8px 9px 8px 4.8em !important;
     text-align: left !important; white-space: normal !important;

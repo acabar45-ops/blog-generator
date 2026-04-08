@@ -60,13 +60,13 @@ h2 { font-size: 1.2rem !important; }
 h3 { font-size: 1.05rem !important; }
 h4 { font-size: 0.95rem !important; }
 p, li, span, div { font-size: 13px; }
-section[data-testid="stSidebar"] { width: 280px !important; }
+section[data-testid="stSidebar"] { width: 50vw !important; min-width: 400px !important; max-width: 700px !important; }
 section[data-testid="stSidebar"] .stButton button {
-    font-size: 11px !important; padding: 4px 8px !important;
-    text-align: left !important; white-space: nowrap;
-    overflow: hidden; text-overflow: ellipsis;
+    font-size: 12px !important; padding: 6px 10px !important;
+    text-align: left !important; white-space: normal !important;
+    word-break: keep-all; line-height: 1.4;
 }
-section[data-testid="stSidebar"] .stRadio label { font-size: 11px !important; padding: 2px 4px !important; }
+section[data-testid="stSidebar"] .stRadio label { font-size: 12px !important; padding: 3px 6px !important; }
 .badge { display: inline-block; padding: 1px 6px; border-radius: 8px;
          font-size: 10px; font-weight: bold; color: white; margin-left: 4px; vertical-align: middle; }
 .badge-실무팁 { background: #4A90D9; } .badge-도입사례 { background: #27AE60; }
@@ -575,7 +575,7 @@ with st.sidebar:
     st.divider()
 
     # 주제 목록
-    topic_container = st.container(height=350)
+    topic_container = st.container(height=500)
     with topic_container:
         for t in filtered_topics():
             status = "✅" if is_done(t["id"]) else "⬜"

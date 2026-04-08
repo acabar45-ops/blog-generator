@@ -159,16 +159,27 @@ def generate_image(prompt: str, filename: str) -> dict:
         # Ensure output directory exists
         os.makedirs(IMAGES_DIR, exist_ok=True)
 
-        # 프롬프트는 에이전트가 이미 Google 정책을 숙지하고 작성했으므로 그대로 사용
-        # negative_prompt로 최소한의 안전장치만 추가
-        negative_prompt = "text, letters, signage, logo, readable sign, close-up face, foreign scenery"
+        # 프롬프트 자동 보강: 한국 배경 + 금지사항 suffix
+        enhanced_prompt = prompt.strip()
+        # Seoul 언급이 없으면 자동 추가
+        if "seoul" not in enhanced_prompt.lower() and "south korea" not in enhanced_prompt.lower():
+            enhanced_prompt += ", Seoul, South Korea"
+        # 금지사항 suffix가 없으면 자동 추가
+        if "no text" not in enhanced_prompt.lower():
+            enhanced_prompt += ", no text, no signage, no readable signs, no logos, no letters"
+        # photorealistic 강조
+        if "photo" not in enhanced_prompt.lower() and "realistic" not in enhanced_prompt.lower():
+            enhanced_prompt += ", photorealistic, high quality"
 
-        print(f"[Imagen] Prompt: {prompt[:120]}...")
+        # negative_prompt: 핵심 금지만 (너무 광범위하면 프롬프트와 충돌)
+        negative_prompt = "close-up face, portrait, headshot, foreign western architecture, European building, American building"
+
+        print(f"[Imagen] Prompt: {enhanced_prompt[:150]}...")
 
         model = ImageGenerationModel.from_pretrained(MODEL_NAME)
 
         response = model.generate_images(
-            prompt=prompt,
+            prompt=enhanced_prompt,
             negative_prompt=negative_prompt,
             number_of_images=1,
             aspect_ratio="4:3",

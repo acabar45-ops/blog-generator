@@ -612,19 +612,40 @@ with st.sidebar:
     st.caption(f"완료 {dc}/{TOTAL} | 📝네이버 {naver_count} · 🌐워드프레스 {wp_count}")
     st.divider()
 
-    # 주제 목록
+    # 주제 목록 (플랫폼별 분리)
+    topics_list = filtered_topics()
+    naver_topics = [t for t in topics_list if t.get("platform") == "naver"]
+    wp_topics = [t for t in topics_list if t.get("platform") == "wordpress"]
+
     topic_container = st.container(height=450)
     with topic_container:
-        for t in filtered_topics():
-            status = "✅" if is_done(t["id"]) else "⬜"
-            picon = "📝" if t.get("platform") == "naver" else "🌐"
-            label = f'{status}{picon} {t["id"]:03d}. {t["title"]}'
-            is_sel = st.session_state.selected_id == t["id"]
-            if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
-                         type="primary" if is_sel else "secondary"):
-                st.session_state.selected_id = t["id"]
-                st.session_state.page = "main"
-                st.rerun()
+        if st.session_state.platform_filter in ("전체", "네이버") and naver_topics:
+            naver_done = sum(1 for t in naver_topics if is_done(t["id"]))
+            st.caption(f"📝 네이버 블로그 ({naver_done}/{len(naver_topics)})")
+            for t in naver_topics:
+                status = "✅" if is_done(t["id"]) else "⬜"
+                label = f'{status} {t["id"]:03d}. {t["title"]}'
+                is_sel = st.session_state.selected_id == t["id"]
+                if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
+                             type="primary" if is_sel else "secondary"):
+                    st.session_state.selected_id = t["id"]
+                    st.session_state.page = "main"
+                    st.rerun()
+
+        if st.session_state.platform_filter in ("전체", "워드프레스") and wp_topics:
+            if naver_topics and st.session_state.platform_filter == "전체":
+                st.divider()
+            wp_done = sum(1 for t in wp_topics if is_done(t["id"]))
+            st.caption(f"🌐 워드프레스 ({wp_done}/{len(wp_topics)})")
+            for t in wp_topics:
+                status = "✅" if is_done(t["id"]) else "⬜"
+                label = f'{status} {t["id"]:03d}. {t["title"]}'
+                is_sel = st.session_state.selected_id == t["id"]
+                if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
+                             type="primary" if is_sel else "secondary"):
+                    st.session_state.selected_id = t["id"]
+                    st.session_state.page = "main"
+                    st.rerun()
 
     st.divider()
 
@@ -987,41 +1008,47 @@ else:
     )
     st.caption("✅ 완료" if is_done(topic["id"]) else "⬜ 미생성")
 
-    # ── 에이전트 선택 (주제 상세 페이지에서도 항상 표시) ──
-    # ── 미생성: 둘 다 없을 때 ──
-    if not blog.get("final") and not blog.get("wordpress"):
-        topic_platform = topic.get("platform", "naver")
-        platform_label = "📝 네이버 블로그" if topic_platform == "naver" else "🌐 워드프레스"
+    # ── 글 생성/재생성 ──
+    topic_platform = topic.get("platform", "naver")
+    platform_label = "📝 네이버 블로그" if topic_platform == "naver" else "🌐 워드프레스"
+    is_already_done = blog.get("final") or blog.get("wordpress")
+
+    if not is_already_done:
         st.info(f"아직 생성되지 않은 주제입니다. ({platform_label} 전용)")
+        gen_label = f"✨ {platform_label} 생성"
+    else:
+        gen_label = f"🔄 {platform_label} 재생성"
 
-        do_gen = st.button(f"✨ {platform_label} 생성", type="primary", use_container_width=True)
+    do_gen = st.button(gen_label, type="primary", use_container_width=True, key=f"gen_blog_{topic['id']}")
 
-        if do_gen:
-            if not check_api_key():
-                st.stop()
-            with st.status(f"🍎 파이프라인 — {platform_label} 생성 중...", expanded=True) as s:
-                result = pipeline.run_pipeline(
-                    topic["title"], cid, topic_platform,
-                    status_callback=lambda msg: st.write(msg)
-                )
-                blog_text = result["blog"]
-                footer = gen.generate_blog_footer(blog_text, cid)
-                blog_text = blog_text + "\n" + footer
-                qa_score = result.get("qa_score", 0)
-                img_prompts = result.get("image_prompts", "")
-                if topic_platform == "naver":
-                    blog_data = dict(naver=blog_text, final=blog_text,
-                                     agents=["pipeline_7"], qa_score=qa_score)
-                    if img_prompts:
-                        blog_data["naver_images"] = img_prompts
-                else:
-                    blog_data = dict(wordpress=blog_text,
-                                     agents=["pipeline_7"], qa_score=qa_score)
-                    if img_prompts:
-                        blog_data["wp_images"] = img_prompts
-                update_blog(topic["id"], **blog_data)
-                s.update(label=f"✅ 파이프라인 완료! QA {qa_score}/80", state="complete")
-            st.rerun()
+    if do_gen:
+        if not check_api_key():
+            st.stop()
+        with st.status(f"🍎 파이프라인 — {platform_label} {'재' if is_already_done else ''}생성 중...", expanded=True) as s:
+            result = pipeline.run_pipeline(
+                topic["title"], cid, topic_platform,
+                status_callback=lambda msg: st.write(msg)
+            )
+            blog_text = result["blog"]
+            footer = gen.generate_blog_footer(blog_text, cid)
+            blog_text = blog_text + "\n" + footer
+            qa_score = result.get("qa_score", 0)
+            img_prompts = result.get("image_prompts", "")
+            if topic_platform == "naver":
+                blog_data = dict(naver=blog_text, final=blog_text,
+                                 agents=["pipeline_7"], qa_score=qa_score)
+                if img_prompts:
+                    blog_data["naver_images"] = img_prompts
+            else:
+                blog_data = dict(wordpress=blog_text,
+                                 agents=["pipeline_7"], qa_score=qa_score)
+                if img_prompts:
+                    blog_data["wp_images"] = img_prompts
+            update_blog(topic["id"], **blog_data)
+            s.update(label=f"✅ 파이프라인 완료! QA {qa_score}/80", state="complete")
+        st.rerun()
+
+    if not is_already_done:
         st.stop()
 
     # ── 생성 완료: 탭 ──

@@ -115,7 +115,6 @@ defaults = {
     "page": "main",
     "selected_id": None,
     "search": "",
-    "api_key": CLAUDE_API_KEY,
     "custom_topic": "",
     "current_company": "houseman",
 }
@@ -155,11 +154,9 @@ def update_blog(topic_id, **kwargs):
     save_blog(topic_id, current, st.session_state.current_company)
 
 def check_api_key():
-    key = st.session_state.api_key.strip()
-    if not key:
-        st.error("API 키가 설정되지 않았습니다.")
+    if not CLAUDE_API_KEY:
+        st.error("API 키가 설정되지 않았습니다. secrets.toml을 확인하세요.")
         return False
-    gen.CLAUDE_API_KEY = key
     return True
 
 def get_generated_image_paths(topic_id, platform):
@@ -468,20 +465,11 @@ with st.sidebar:
     st.caption(company_data.get("website", ""))
 
     # API 키
-    with st.expander("🔑 API 키", expanded=not bool(st.session_state.api_key.strip())):
-        api_input = st.text_input(
-            "Claude API 키", value=st.session_state.api_key,
-            type="password", placeholder="sk-ant-api03-...",
-            label_visibility="collapsed",
-        )
-        if api_input != st.session_state.api_key:
-            st.session_state.api_key = api_input
-            gen.CLAUDE_API_KEY = api_input
-            st.rerun()
-        if st.session_state.api_key.strip():
+    with st.expander("🔑 API 상태", expanded=False):
+        if CLAUDE_API_KEY:
             st.success("✓ Claude 설정됨", icon="✅")
-
-        st.caption("─ Gemini (이미지) ─")
+        else:
+            st.error("❌ Claude API 키 미설정 (secrets.toml)")
         import gemini_client
         if gemini_client.check_api_key():
             st.success("✓ Gemini 설정됨", icon="✅")
@@ -504,48 +492,71 @@ with st.sidebar:
     st.caption(f"완료 {dc}/{TOTAL}")
     st.divider()
 
-    # 랜덤 추천 주제 (미생성 중 네이버 5 + 워드프레스 5)
+    # 랜덤 추천 주제 (미생성 중 네이버 10 + 워드프레스 10)
     def _pick_random_topics():
         all_naver = [t for t in TOPICS if t.get("platform") == "naver" and not is_done(t["id"])]
         all_wp = [t for t in TOPICS if t.get("platform") == "wordpress" and not is_done(t["id"])]
         random.shuffle(all_naver)
         random.shuffle(all_wp)
-        return all_naver[:5], all_wp[:5]
+        return all_naver[:10], all_wp[:10]
 
     if "rand_naver" not in st.session_state or "rand_wp" not in st.session_state:
         st.session_state.rand_naver, st.session_state.rand_wp = _pick_random_topics()
 
-    if st.button("🔄 다른 주제 추천", use_container_width=True):
+    def _replace_one_topic(platform, index):
+        """특정 주제 1개를 다른 주제로 교체"""
+        current_list = st.session_state.rand_naver if platform == "naver" else st.session_state.rand_wp
+        current_ids = {t["id"] for t in current_list}
+        pool = [t for t in TOPICS if t.get("platform") == platform and not is_done(t["id"]) and t["id"] not in current_ids]
+        if pool:
+            random.shuffle(pool)
+            current_list[index] = pool[0]
+
+    if st.button("🔄 전체 새로고침", use_container_width=True):
         st.session_state.rand_naver, st.session_state.rand_wp = _pick_random_topics()
         st.rerun()
 
-    topic_container = st.container(height=420)
+    topic_container = st.container(height=520)
     with topic_container:
         # 네이버 추천
         if st.session_state.rand_naver:
-            st.caption(f"📝 네이버 블로그 추천 ({len(st.session_state.rand_naver)}개)")
-            for t in st.session_state.rand_naver:
-                label = f'⬜ {t["id"]:03d}. {t["title"]}'
-                is_sel = st.session_state.selected_id == t["id"]
-                if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
-                             type="primary" if is_sel else "secondary"):
-                    st.session_state.selected_id = t["id"]
-                    st.session_state.page = "main"
-                    st.rerun()
+            st.caption(f"📝 네이버 블로그 ({len(st.session_state.rand_naver)}개)")
+            for i, t in enumerate(st.session_state.rand_naver):
+                col_topic, col_btn = st.columns([8, 1])
+                with col_topic:
+                    done_icon = "✅" if is_done(t["id"]) else "⬜"
+                    label = f'{done_icon} {t["title"]}'
+                    is_sel = st.session_state.selected_id == t["id"]
+                    if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
+                                 type="primary" if is_sel else "secondary"):
+                        st.session_state.selected_id = t["id"]
+                        st.session_state.page = "main"
+                        st.rerun()
+                with col_btn:
+                    if st.button("🔄", key=f"refresh_{t['id']}"):
+                        _replace_one_topic("naver", i)
+                        st.rerun()
 
         st.divider()
 
         # 워드프레스 추천
         if st.session_state.rand_wp:
-            st.caption(f"🌐 워드프레스 추천 ({len(st.session_state.rand_wp)}개)")
-            for t in st.session_state.rand_wp:
-                label = f'⬜ {t["id"]:03d}. {t["title"]}'
-                is_sel = st.session_state.selected_id == t["id"]
-                if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
-                             type="primary" if is_sel else "secondary"):
-                    st.session_state.selected_id = t["id"]
-                    st.session_state.page = "main"
-                    st.rerun()
+            st.caption(f"🌐 워드프레스 ({len(st.session_state.rand_wp)}개)")
+            for i, t in enumerate(st.session_state.rand_wp):
+                col_topic, col_btn = st.columns([8, 1])
+                with col_topic:
+                    done_icon = "✅" if is_done(t["id"]) else "⬜"
+                    label = f'{done_icon} {t["title"]}'
+                    is_sel = st.session_state.selected_id == t["id"]
+                    if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
+                                 type="primary" if is_sel else "secondary"):
+                        st.session_state.selected_id = t["id"]
+                        st.session_state.page = "main"
+                        st.rerun()
+                with col_btn:
+                    if st.button("🔄", key=f"refresh_{t['id']}"):
+                        _replace_one_topic("wordpress", i)
+                        st.rerun()
 
     st.divider()
 
@@ -686,350 +697,178 @@ if do_gen:
 if not is_already_done:
     st.stop()
 
-# ── 생성 완료: 탭 ──
-tab_naver, tab_wp = st.tabs(["📝 네이버", "🌐 워드프레스"])
+# ── 생성 완료: 해당 플랫폼만 표시 ──
+if topic_platform == "naver":
+    blog_content = blog.get("final")
+    blog_key = "final"
+    img_key = "naver_images"
+    platform_for_img = "naver"
+else:
+    blog_content = blog.get("wordpress")
+    blog_key = "wordpress"
+    img_key = "wp_images"
+    platform_for_img = "wordpress"
 
-# ── 네이버 탭 ──
-with tab_naver:
-    if blog.get("final"):
-        used_agents = blog.get("agents", [])
-        if used_agents:
-            names = []
-            for aid in used_agents:
-                if aid == "custom":
-                    names.append("✏️커스텀")
-                elif aid == "pipeline_7":
-                    names.append("🍎파이프라인")
-                else:
-                    a = next((ag for ag in AGENTS if ag["id"] == aid), None)
-                    if a:
-                        names.append(f"{a['icon']}{a['name']}")
-            st.caption(f"참여 에이전트: {' · '.join(names)}")
+if blog_content:
+    used_agents = blog.get("agents", [])
+    if used_agents:
+        names = []
+        for aid in used_agents:
+            if aid in ("pipeline_7", "pipeline_23"):
+                names.append("🍎파이프라인")
+        st.caption(f"참여 에이전트: {' · '.join(names)}")
 
-        # 이미지가 있으면 글 사이사이에 이미지 삽입, 없으면 글만
-        naver_img_paths = get_generated_image_paths(topic["id"], "naver")
-        if naver_img_paths and blog.get("naver_images"):
-            st.markdown("###### 📖 글 + 이미지 미리보기")
-            render_blog_with_images(blog["final"], blog["naver_images"], naver_img_paths)
-        else:
-            render_blog_preview(blog["final"])
-
-        with st.expander("📋 텍스트만 복사"):
-            st.code(blog["final"], language=None)
-
-        # ── HTML 다운로드 버튼 ──
-        naver_dl_paths = get_generated_image_paths(topic["id"], "naver")
-        html_data = build_html_with_images(
-            blog["final"],
-            blog.get("naver_images", ""),
-            naver_dl_paths,
-            platform="naver",
-            title=topic["title"],
-        )
-        st.download_button(
-            label="📥 HTML 다운로드 (이미지 포함)",
-            data=html_data.encode("utf-8"),
-            file_name=f"naver_{topic['id']:03d}_{topic['title'][:20]}.html",
-            mime="text/html",
-            use_container_width=True,
-            key="dl_naver_html",
-        )
-
-        st.divider()
-
-        # ── 방향성 전환 (코멘트 수정) — 이미지보다 위 ──
-        st.markdown("###### 🔀 방향성 전환")
-        comment = st.text_area("방향성 전환", placeholder="글의 방향, 톤, 강조점 등 수정 요청을 입력하세요",
-                               height=60, label_visibility="collapsed", key="comment_naver")
-        if st.button("✏️ 방향성 전환 적용", use_container_width=True, type="primary", key="apply_naver"):
-            if not comment.strip():
-                st.warning("수정 요청을 입력해주세요.")
-            elif check_api_key():
-                with st.spinner("방향성 전환 중..."):
-                    revised = gen.revise_with_comment(blog["final"], comment, "naver")
-                update_blog(topic["id"], final=revised)
-                st.rerun()
-
-        st.divider()
-
-        # ── 이미지 배치 ──
-        st.markdown("###### 📷 이미지 배치")
-
-        if blog.get("naver_images"):
-            with st.expander("📋 이미지 배치 계획 보기", expanded=not bool(naver_img_paths)):
-                st.markdown(blog["naver_images"])
-
-            if naver_img_paths:
-                st.success(f"✅ 이미지 {len(naver_img_paths)}장 생성 완료")
-
-                # ZIP 다운로드 버튼
-                import zipfile, io
-                zip_buf = io.BytesIO()
-                with zipfile.ZipFile(zip_buf, "w") as zf:
-                    for img_path in naver_img_paths:
-                        from pathlib import Path as _P
-                        zf.write(img_path, _P(img_path).name)
-                zip_buf.seek(0)
-                st.download_button(
-                    "📥 전체 이미지 다운로드 (ZIP)",
-                    data=zip_buf.getvalue(),
-                    file_name=f"topic_{topic['id']:03d}_naver_images.zip",
-                    mime="application/zip",
-                    use_container_width=True,
-                )
-
-                naver_prompts = gemini_client.parse_image_prompts(blog["naver_images"])
-                for img_i, img_path in enumerate(naver_img_paths):
-                    col_img, col_btn = st.columns([4, 1])
-                    with col_img:
-                        st.image(img_path, caption=f"이미지 {img_i+1}", width=385)
-                    with col_btn:
-                        st.write("")
-                        st.write("")
-                        if st.button("🔄", key=f"regen_naver_img_{img_i}", help=f"이미지 {img_i+1} 다시 만들기"):
-                            if not gemini_client.is_authenticated():
-                                st.warning("Gemini API 키 필요")
-                            elif img_i < len(naver_prompts):
-                                with st.spinner(f"이미지 {img_i+1} 재생성 중..."):
-                                    result = gemini_client.regenerate_single_image(
-                                        naver_prompts[img_i], topic["id"], "naver", img_i + 1)
-                                if result["success"]:
-                                    st.success("✅ 재생성 완료!")
-                                else:
-                                    st.error(f"실패: {result['error']}")
-                                st.rerun()
-                            else:
-                                st.warning("프롬프트를 찾을 수 없습니다.")
-
-                if st.button("🔄 전체 이미지 재생성", use_container_width=True, key="gen_all_img_naver"):
-                    if not gemini_client.is_authenticated():
-                        st.warning("Gemini API 키가 필요합니다.")
-                    else:
-                        with st.spinner("전체 이미지 재생성 중..."):
-                            results = gemini_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
-                        ok = sum(1 for r in results if r["success"])
-                        if ok:
-                            st.success(f"✅ {ok}장 재생성 완료")
-                        st.rerun()
-            else:
-                if st.button("🖼️ AI 이미지 생성", use_container_width=True, type="primary", key="gen_img_naver"):
-                    if not gemini_client.is_authenticated():
-                        st.warning("Gemini API 키가 필요합니다.")
-                    else:
-                        with st.status("🖼️ AI가 이미지를 생성하고 있습니다...", expanded=True) as img_s:
-                            st.write("🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원의 콘텐츠 합의 기반...")
-                            st.write("🎨 아트디렉션 자문위원의 프롬프트로 이미지 생성 중...")
-                            results = gemini_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
-                            img_s.update(label="✅ 이미지 생성 완료!", state="complete")
-                        ok = sum(1 for r in results if r["success"])
-                        fail = sum(1 for r in results if not r["success"])
-                        if ok:
-                            st.success(f"✅ {ok}장 생성 완료")
-                        if fail:
-                            for r in results:
-                                if not r["success"]:
-                                    st.error(f"실패: {r['error']}")
-                        st.rerun()
-
-            if st.button("🔄 이미지 계획 재생성", use_container_width=True, key="regen_img_naver"):
-                if check_api_key():
-                    with st.status("🎬 네이버 이미지 팀 재협업...", expanded=True) as s:
-                        st.markdown("""<div class="collab-step"><div class="step-label">STEP 1</div>
-                        <div class="step-desc">🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원 콘텐츠 회의 중...</div>
-                        <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
-                        agent_prompts = ""
-                        def naver_regen_cb(msg):
-                            st.write(msg)
-                        img_plan = gen.generate_image_plan(blog["final"], "naver", agent_prompts, cid, status_callback=naver_regen_cb)
-                        update_blog(topic["id"], naver_images=img_plan)
-                        s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
-                    st.rerun()
-        else:
-            if st.button("📷 이미지 배치 계획 생성", use_container_width=True, type="primary", key="img_plan_naver"):
-                if check_api_key():
-                    with st.status("🎬 네이버 이미지 팀 협업 시작...", expanded=True) as s:
-                        st.markdown("""<div class="collab-step"><div class="step-label">STEP 1 · 콘텐츠 회의</div>
-                        <div class="step-desc">🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원이 소제목별 이미지를 논의합니다</div>
-                        <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
-                        agent_prompts = ""
-                        def naver_cb(msg):
-                            st.write(msg)
-                        img_plan = gen.generate_image_plan(blog["final"], "naver", agent_prompts, cid, status_callback=naver_cb)
-                        update_blog(topic["id"], naver_images=img_plan)
-                        s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
-                    st.rerun()
+    # 이미지가 있으면 글 사이사이에 이미지 삽입, 없으면 글만
+    naver_img_paths = get_generated_image_paths(topic["id"], "naver")
+    if naver_img_paths and blog.get("naver_images"):
+        st.markdown("###### 📖 글 + 이미지 미리보기")
+        render_blog_with_images(blog["final"], blog["naver_images"], naver_img_paths)
     else:
-        st.info("네이버 버전이 없습니다. 생성해주세요.")
+        render_blog_preview(blog["final"])
 
-# ── 워드프레스 탭 ──
-with tab_wp:
-    if blog.get("wordpress"):
-        used_agents = blog.get("agents", [])
-        if used_agents:
-            names = []
-            for aid in used_agents:
-                if aid == "custom":
-                    names.append("✏️커스텀")
-                elif aid == "pipeline_7":
-                    names.append("🍎파이프라인")
-                else:
-                    a = next((ag for ag in AGENTS if ag["id"] == aid), None)
-                    if a:
-                        names.append(f"{a['icon']}{a['name']}")
-            st.caption(f"참여 에이전트: {' · '.join(names)}")
+    with st.expander("📋 텍스트만 복사"):
+        st.code(blog["final"], language=None)
 
-        # 이미지가 있으면 글 사이사이에 이미지 삽입
-        wp_img_paths = get_generated_image_paths(topic["id"], "wordpress")
-        if wp_img_paths and blog.get("wp_images"):
-            st.markdown("###### 📖 글 + 이미지 미리보기")
-            render_blog_with_images(blog["wordpress"], blog["wp_images"], wp_img_paths, platform="wordpress")
-        else:
-            render_blog_preview(blog["wordpress"])
+    # ── HTML 다운로드 버튼 ──
+    naver_dl_paths = get_generated_image_paths(topic["id"], "naver")
+    html_data = build_html_with_images(
+        blog["final"],
+        blog.get("naver_images", ""),
+        naver_dl_paths,
+        platform="naver",
+        title=topic["title"],
+    )
+    st.download_button(
+        label="📥 HTML 다운로드 (이미지 포함)",
+        data=html_data.encode("utf-8"),
+        file_name=f"naver_{topic['id']:03d}_{topic['title'][:20]}.html",
+        mime="text/html",
+        use_container_width=True,
+        key="dl_naver_html",
+    )
 
-        with st.expander("📋 텍스트만 복사"):
-            st.code(blog["wordpress"], language=None)
+    st.divider()
 
-        # ── HTML 다운로드 버튼 ──
-        wp_dl_paths = get_generated_image_paths(topic["id"], "wordpress")
-        wp_html_data = build_html_with_images(
-            blog["wordpress"],
-            blog.get("wp_images", ""),
-            wp_dl_paths,
-            platform="wordpress",
-            title=topic["title"],
-        )
-        st.download_button(
-            label="📥 HTML 다운로드 (이미지 포함)",
-            data=wp_html_data.encode("utf-8"),
-            file_name=f"wordpress_{topic['id']:03d}_{topic['title'][:20]}.html",
-            mime="text/html",
-            use_container_width=True,
-            key="dl_wp_html",
-        )
+    # ── 방향성 전환 (코멘트 수정) — 이미지보다 위 ──
+    st.markdown("###### 🔀 방향성 전환")
+    comment = st.text_area("방향성 전환", placeholder="글의 방향, 톤, 강조점 등 수정 요청을 입력하세요",
+                           height=60, label_visibility="collapsed", key="comment_naver")
+    if st.button("✏️ 방향성 전환 적용", use_container_width=True, type="primary", key="apply_naver"):
+        if not comment.strip():
+            st.warning("수정 요청을 입력해주세요.")
+        elif check_api_key():
+            with st.spinner("방향성 전환 중..."):
+                revised = gen.revise_with_comment(blog["final"], comment, "naver")
+            update_blog(topic["id"], final=revised)
+            st.rerun()
 
-        st.divider()
+    st.divider()
 
-        # ── 방향성 전환 (코멘트 수정) — 이미지보다 위 ──
-        st.markdown("###### 🔀 방향성 전환")
-        comment_wp = st.text_area("방향성 전환", placeholder="글의 방향, 톤, SEO 키워드 등 수정 요청을 입력하세요",
-                                  height=60, label_visibility="collapsed", key="comment_wp")
-        if st.button("✏️ 방향성 전환 적용", use_container_width=True, type="primary", key="apply_wp"):
-            if not comment_wp.strip():
-                st.warning("수정 요청을 입력해주세요.")
-            elif check_api_key():
-                with st.spinner("방향성 전환 중..."):
-                    revised = gen.revise_with_comment(blog["wordpress"], comment_wp, "wordpress")
-                update_blog(topic["id"], wordpress=revised)
-                st.rerun()
+    # ── 이미지 배치 ──
+    st.markdown("###### 📷 이미지 배치")
 
-        st.divider()
+    if blog.get("naver_images"):
+        with st.expander("📋 이미지 배치 계획 보기", expanded=not bool(naver_img_paths)):
+            st.markdown(blog["naver_images"])
 
-        # ── 이미지 배치 ──
-        st.markdown("###### 📷 이미지 배치")
+        if naver_img_paths:
+            st.success(f"✅ 이미지 {len(naver_img_paths)}장 생성 완료")
 
-        if blog.get("wp_images"):
-            with st.expander("📋 이미지 배치 계획 보기", expanded=not bool(wp_img_paths)):
-                st.markdown(blog["wp_images"])
+            # ZIP 다운로드 버튼
+            import zipfile, io
+            zip_buf = io.BytesIO()
+            with zipfile.ZipFile(zip_buf, "w") as zf:
+                for img_path in naver_img_paths:
+                    from pathlib import Path as _P
+                    zf.write(img_path, _P(img_path).name)
+            zip_buf.seek(0)
+            st.download_button(
+                "📥 전체 이미지 다운로드 (ZIP)",
+                data=zip_buf.getvalue(),
+                file_name=f"topic_{topic['id']:03d}_naver_images.zip",
+                mime="application/zip",
+                use_container_width=True,
+            )
 
-            if wp_img_paths:
-                st.success(f"✅ 이미지 {len(wp_img_paths)}장 생성 완료")
-
-                # ZIP 다운로드 버튼
-                import zipfile, io
-                zip_buf = io.BytesIO()
-                with zipfile.ZipFile(zip_buf, "w") as zf:
-                    for img_path in wp_img_paths:
-                        from pathlib import Path as _P
-                        zf.write(img_path, _P(img_path).name)
-                zip_buf.seek(0)
-                st.download_button(
-                    "📥 전체 이미지 다운로드 (ZIP)",
-                    data=zip_buf.getvalue(),
-                    file_name=f"topic_{topic['id']:03d}_wp_images.zip",
-                    mime="application/zip",
-                    use_container_width=True,
-                    key="dl_wp_images",
-                )
-
-                wp_prompts = gemini_client.parse_image_prompts(blog["wp_images"])
-                for img_i, img_path in enumerate(wp_img_paths):
-                    col_img, col_btn = st.columns([4, 1])
-                    with col_img:
-                        st.image(img_path, caption=f"이미지 {img_i+1}", width=385)
-                    with col_btn:
-                        st.write("")
-                        st.write("")
-                        if st.button("🔄", key=f"regen_wp_img_{img_i}", help=f"이미지 {img_i+1} 다시 만들기"):
-                            if not gemini_client.is_authenticated():
-                                st.warning("Gemini API 키 필요")
-                            elif img_i < len(wp_prompts):
-                                with st.spinner(f"이미지 {img_i+1} 재생성 중..."):
-                                    result = gemini_client.regenerate_single_image(
-                                        wp_prompts[img_i], topic["id"], "wordpress", img_i + 1)
-                                if result["success"]:
-                                    st.success("✅ 재생성 완료!")
-                                else:
-                                    st.error(f"실패: {result['error']}")
-                                st.rerun()
+            naver_prompts = gemini_client.parse_image_prompts(blog["naver_images"])
+            for img_i, img_path in enumerate(naver_img_paths):
+                col_img, col_btn = st.columns([4, 1])
+                with col_img:
+                    st.image(img_path, caption=f"이미지 {img_i+1}", width=385)
+                with col_btn:
+                    st.write("")
+                    st.write("")
+                    if st.button("🔄", key=f"regen_naver_img_{img_i}", help=f"이미지 {img_i+1} 다시 만들기"):
+                        if not gemini_client.is_authenticated():
+                            st.warning("Gemini API 키 필요")
+                        elif img_i < len(naver_prompts):
+                            with st.spinner(f"이미지 {img_i+1} 재생성 중..."):
+                                result = gemini_client.regenerate_single_image(
+                                    naver_prompts[img_i], topic["id"], "naver", img_i + 1)
+                            if result["success"]:
+                                st.success("✅ 재생성 완료!")
                             else:
-                                st.warning("프롬프트를 찾을 수 없습니다.")
+                                st.error(f"실패: {result['error']}")
+                            st.rerun()
+                        else:
+                            st.warning("프롬프트를 찾을 수 없습니다.")
 
-                if st.button("🔄 전체 이미지 재생성", use_container_width=True, key="gen_all_img_wp"):
-                    if not gemini_client.is_authenticated():
-                        st.warning("Gemini API 키가 필요합니다.")
-                    else:
-                        with st.spinner("전체 이미지 재생성 중..."):
-                            results = gemini_client.generate_blog_images(blog["wp_images"], topic["id"], "wordpress")
-                        ok = sum(1 for r in results if r["success"])
-                        if ok:
-                            st.success(f"✅ {ok}장 재생성 완료")
-                        st.rerun()
-            else:
-                if st.button("🖼️ AI 이미지 생성", use_container_width=True, type="primary", key="gen_img_wp"):
-                    if not gemini_client.is_authenticated():
-                        st.warning("Gemini API 키가 필요합니다.")
-                    else:
-                        with st.status("🖼️ AI가 이미지를 생성하고 있습니다...", expanded=True) as img_s:
-                            st.write("📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원의 정보 시각화 합의 기반...")
-                            st.write("🎨 아트디렉션 자문위원의 미니멀 프롬프트로 이미지 생성 중...")
-                            results = gemini_client.generate_blog_images(blog["wp_images"], topic["id"], "wordpress")
-                            img_s.update(label="✅ 이미지 생성 완료!", state="complete")
-                        ok = sum(1 for r in results if r["success"])
-                        fail = sum(1 for r in results if not r["success"])
-                        if ok:
-                            st.success(f"✅ {ok}장 생성 완료")
-                        if fail:
-                            for r in results:
-                                if not r["success"]:
-                                    st.error(f"실패: {r['error']}")
-                        st.rerun()
-
-            if st.button("🔄 이미지 계획 재생성", use_container_width=True, key="regen_img_wp"):
-                if check_api_key():
-                    with st.status("🎬 워드프레스 이미지 팀 재협업...", expanded=True) as s:
-                        st.markdown("""<div class="collab-step"><div class="step-label">STEP 1</div>
-                        <div class="step-desc">📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원 정보 시각화 회의 중...</div>
-                        <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
-                        agent_prompts = ""
-                        def wp_regen_cb(msg):
-                            st.write(msg)
-                        img_plan = gen.generate_image_plan(blog["wordpress"], "wordpress", agent_prompts, cid, status_callback=wp_regen_cb)
-                        update_blog(topic["id"], wp_images=img_plan)
-                        s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
+            if st.button("🔄 전체 이미지 재생성", use_container_width=True, key="gen_all_img_naver"):
+                if not gemini_client.is_authenticated():
+                    st.warning("Gemini API 키가 필요합니다.")
+                else:
+                    with st.spinner("전체 이미지 재생성 중..."):
+                        results = gemini_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
+                    ok = sum(1 for r in results if r["success"])
+                    if ok:
+                        st.success(f"✅ {ok}장 재생성 완료")
                     st.rerun()
         else:
-            if st.button("📷 이미지 배치 계획 생성", use_container_width=True, type="primary", key="img_plan_wp"):
-                if check_api_key():
-                    with st.status("🎬 워드프레스 이미지 팀 협업 시작...", expanded=True) as s:
-                        st.markdown("""<div class="collab-step"><div class="step-label">STEP 1 · 정보 시각화 회의</div>
-                        <div class="step-desc">📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원이 소제목별 정보 시각물을 논의합니다</div>
-                        <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
-                        agent_prompts = ""
-                        def wp_cb(msg):
-                            st.write(msg)
-                        img_plan = gen.generate_image_plan(blog["wordpress"], "wordpress", agent_prompts, cid, status_callback=wp_cb)
-                        update_blog(topic["id"], wp_images=img_plan)
-                        s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
+            if st.button("🖼️ AI 이미지 생성", use_container_width=True, type="primary", key="gen_img_naver"):
+                if not gemini_client.is_authenticated():
+                    st.warning("Gemini API 키가 필요합니다.")
+                else:
+                    with st.status("🖼️ AI가 이미지를 생성하고 있습니다...", expanded=True) as img_s:
+                        st.write("🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원의 콘텐츠 합의 기반...")
+                        st.write("🎨 아트디렉션 자문위원의 프롬프트로 이미지 생성 중...")
+                        results = gemini_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
+                        img_s.update(label="✅ 이미지 생성 완료!", state="complete")
+                    ok = sum(1 for r in results if r["success"])
+                    fail = sum(1 for r in results if not r["success"])
+                    if ok:
+                        st.success(f"✅ {ok}장 생성 완료")
+                    if fail:
+                        for r in results:
+                            if not r["success"]:
+                                st.error(f"실패: {r['error']}")
                     st.rerun()
+
+        if st.button("🔄 이미지 계획 재생성", use_container_width=True, key="regen_img_naver"):
+            if check_api_key():
+                with st.status("🎬 네이버 이미지 팀 재협업...", expanded=True) as s:
+                    st.markdown("""<div class="collab-step"><div class="step-label">STEP 1</div>
+                    <div class="step-desc">🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원 콘텐츠 회의 중...</div>
+                    <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
+                    agent_prompts = ""
+                    def naver_regen_cb(msg):
+                        st.write(msg)
+                    img_plan = gen.generate_image_plan(blog["final"], "naver", agent_prompts, cid, status_callback=naver_regen_cb)
+                    update_blog(topic["id"], naver_images=img_plan)
+                    s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
+                st.rerun()
     else:
-        st.info("이 주제에 워드프레스 글이 없습니다.")
+        if st.button("📷 이미지 배치 계획 생성", use_container_width=True, type="primary", key="img_plan_naver"):
+            if check_api_key():
+                with st.status("🎬 네이버 이미지 팀 협업 시작...", expanded=True) as s:
+                    st.markdown("""<div class="collab-step"><div class="step-label">STEP 1 · 콘텐츠 회의</div>
+                    <div class="step-desc">🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원이 소제목별 이미지를 논의합니다</div>
+                    <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
+                    agent_prompts = ""
+                    def naver_cb(msg):
+                        st.write(msg)
+                    img_plan = gen.generate_image_plan(blog["final"], "naver", agent_prompts, cid, status_callback=naver_cb)
+                    update_blog(topic["id"], naver_images=img_plan)
+                    s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
+                st.rerun()
+else:
+    st.info(f"{platform_label} 글이 없습니다. 위에서 생성해주세요.")

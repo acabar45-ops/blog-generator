@@ -19,7 +19,6 @@ CLIENT_SECRET_FILE = "client_secret.json"
 # ── Gemini (gemini_client.py 용) ──
 GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"] if "GEMINI_API_KEY" in st.secrets else ""
 
-# ── 7-에이전트 파이프라인 설정 ──
-PIPELINE_ENABLED = True                  # 파이프라인 모드 활성화
+# ── 파이프라인 설정 ──
 PIPELINE_QA_THRESHOLD = 56              # 품질감사 통과 기준 (80점 만점)
 PIPELINE_MAX_REVISION_ROUNDS = 2        # QA 실패 시 최대 재시도 횟수

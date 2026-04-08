@@ -1257,7 +1257,7 @@ else:
                 </div>
                 <div class="collab-step">
                     <div class="step-label">STEP 2 · 비주얼 실행</div>
-                    <div class="step-desc">🎨 아트디렉션 자문위원이 합의 결과를 받아 → 전체 톤 통일 → 미니멀 프롬프트 작성 → Imagen 3 생성</div>
+                    <div class="step-desc">🎨 아트디렉션 자문위원이 합의 결과를 받아 → 전체 톤 통일 → 미니멀 프롬프트 작성 → AI 이미지 생성</div>
                 </div>""", unsafe_allow_html=True)
 
             if blog.get("naver_images"):
@@ -1300,7 +1300,7 @@ else:
                                 st.success(f"✅ {ok}장 재생성 완료")
                             st.rerun()
                 else:
-                    if st.button("🖼️ Imagen 3 이미지 생성", use_container_width=True, type="primary", key="gen_img_naver"):
+                    if st.button("🖼️ AI 이미지 이미지 생성", use_container_width=True, type="primary", key="gen_img_naver"):
                         if not gemini_client.is_authenticated():
                             st.warning("Gemini API 키가 필요합니다.")
                         else:
@@ -1486,7 +1486,7 @@ else:
                                 st.success(f"✅ {ok}장 재생성 완료")
                             st.rerun()
                 else:
-                    if st.button("🖼️ Imagen 3 이미지 생성", use_container_width=True, type="primary", key="gen_img_wp"):
+                    if st.button("🖼️ AI 이미지 이미지 생성", use_container_width=True, type="primary", key="gen_img_wp"):
                         if not gemini_client.is_authenticated():
                             st.warning("Gemini API 키가 필요합니다.")
                         else:

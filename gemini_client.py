@@ -100,14 +100,17 @@ def generate_image(prompt: str, filename: str = "image", aspect_ratio: str = Non
         elif "webp" in mime_type:
             ext = "webp"
 
-        # 파일 저장 (10% 축소)
+        # 파일 저장 (블로그 본문 폭 680px에 맞춰 리사이즈)
         from PIL import Image
         import io as _io
+        BLOG_WIDTH = 680
         raw_bytes = base64.b64decode(image_data)
         img = Image.open(_io.BytesIO(raw_bytes))
-        new_w = int(img.width * 0.9)
-        new_h = int(img.height * 0.9)
-        img = img.resize((new_w, new_h), Image.LANCZOS)
+        if img.width > BLOG_WIDTH:
+            scale = BLOG_WIDTH / img.width
+            new_w = BLOG_WIDTH
+            new_h = int(img.height * scale)
+            img = img.resize((new_w, new_h), Image.LANCZOS)
         save_path = IMAGE_DIR / f"{filename}.{ext}"
         img.save(save_path, quality=92)
 

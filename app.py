@@ -297,35 +297,16 @@ def render_blog_with_images(blog_content, image_plan, image_paths, platform="nav
             render_blog_preview("\n".join(content_buffer))
             content_buffer = []
             for img_path, layout in img_map[li]:
-                # 모든 이미지를 가운데 정렬 (글 본문과 동일한 중앙 배치)
-                if platform == "naver" or layout == "full":
-                    col_l, col_c, col_r = st.columns([0.5, 9, 0.5])
-                    with col_c:
-                        st.image(img_path, use_container_width=True)
-                elif layout == "large":
-                    col_l, col_c, col_r = st.columns([1, 8, 1])
-                    with col_c:
-                        st.image(img_path, use_container_width=True)
-                elif layout == "medium":
-                    col_l, col_c, col_r = st.columns([1.5, 7, 1.5])
-                    with col_c:
-                        st.image(img_path, use_container_width=True)
-                elif layout == "side-left":
-                    col_img, col_txt = st.columns([2, 3])
-                    with col_img:
-                        st.image(img_path, use_container_width=True)
-                elif layout == "side-right":
-                    col_txt, col_img = st.columns([3, 2])
-                    with col_img:
-                        st.image(img_path, use_container_width=True)
-                elif layout == "pair":
-                    col_a, col_b = st.columns(2)
-                    with col_a:
-                        st.image(img_path, use_container_width=True)
-                else:
-                    col_l, col_c, col_r = st.columns([0.5, 9, 0.5])
-                    with col_c:
-                        st.image(img_path, use_container_width=True)
+                # 이미지는 이미 680px로 리사이즈됨 → 가운데 정렬만 처리
+                import base64 as _b64
+                try:
+                    with open(img_path, "rb") as _f:
+                        _img_data = _b64.b64encode(_f.read()).decode()
+                    _ext = img_path.rsplit(".", 1)[-1]
+                    _mime = f"image/{'jpeg' if _ext == 'jpg' else _ext}"
+                    st.html(f'<div style="text-align:center;margin:16px 0;"><img src="data:{_mime};base64,{_img_data}" style="max-width:100%;border-radius:8px;"></div>')
+                except Exception:
+                    st.image(img_path)
 
     if content_buffer:
         render_blog_preview("\n".join(content_buffer))

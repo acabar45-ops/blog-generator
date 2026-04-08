@@ -123,6 +123,62 @@ def _call_claude(prompt: str, max_tokens: int = 4000, retries: int = 3) -> str:
 
 
 # ══════════════════════════════════════════════════════════════════
+#  블로그 푸터 생성 (카피라이터 슬로건 + 회사 소개)
+# ══════════════════════════════════════════════════════════════════
+def generate_blog_footer(blog_content: str, company_id: str = "houseman") -> str:
+    """글 내용 기반 슬로건 생성 + 회사 정보 푸터 조합"""
+    from company_manager import load_company
+
+    data = load_company(company_id)
+    name = data.get("name", "")
+    phone = data.get("phone", "")
+    phone_direct = data.get("phone_direct", "")
+    address = data.get("address", "")
+    website = data.get("website", "")
+    map_url = data.get("naver_map_url", "")
+
+    # 카피라이터 에이전트: 글 내용 기반 슬로건 1줄 생성
+    slogan_prompt = f"""당신은 B2B 카피라이터입니다. 아래 블로그 글을 읽고, 이 글의 핵심 메시지를 담은 슬로건을 1줄만 만드세요.
+
+규칙:
+- 15자~25자 이내
+- 건물주/담당자가 공감할 수 있는 문장
+- 회사명 포함하지 마세요
+- 따옴표 없이 문장만 출력하세요
+
+글 내용:
+{blog_content[:1000]}"""
+
+    try:
+        slogan = _call_claude(slogan_prompt, max_tokens=50).strip().strip('"').strip("'")
+    except Exception:
+        slogan = "현장에서 답을 찾습니다"
+
+    # 푸터 조합
+    footer_lines = [
+        "",
+        "---",
+        "",
+        f'> "{slogan}"',
+        "",
+        f"🏢 **{name}**",
+    ]
+    if phone:
+        line = f"📞 **{phone}**"
+        if phone_direct:
+            line += f" | 📱 {phone_direct}"
+        footer_lines.append(line)
+    if address:
+        footer_lines.append(f"📍 {address}")
+    if map_url:
+        footer_lines.append(f"🗺️ [네이버 지도로 보기]({map_url})")
+    if website:
+        footer_lines.append(f"🌐 [{website}](https://{website})")
+
+    return "\n".join(footer_lines)
+
+
+# ══════════════════════════════════════════════════════════════════
 #  네이버 블로그 생성 (에이전트와 함께 작성)
 # ══════════════════════════════════════════════════════════════════
 def generate_naver_blog(topic_title: str, agent_prompts: str = "", company_id: str = "houseman") -> str:

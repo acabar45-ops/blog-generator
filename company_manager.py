@@ -32,6 +32,7 @@ DEFAULT_HOUSEMAN_DATA = {
     "phone": "1544-4150",
     "phone_direct": "010-5560-8245",
     "address": "강남구 학동로8길 9, 5층",
+    "naver_map_url": "https://map.naver.com/v5/search/%EA%B0%95%EB%82%A8%EA%B5%AC%20%ED%95%99%EB%8F%99%EB%A1%9C8%EA%B8%B8%209",
     "seo_keywords": "서울 건물관리 위탁, 상가 건물 관리업체, 건물주 자동화 관리, 강남 건물관리, 중소형 빌딩 관리",
     "description": (
         "전화 한 통 없이도 건물이 스스로 관리됩니다. "
@@ -176,6 +177,7 @@ DEFAULT_CLEANMANUAL_DATA = {
     "phone": "1811-1555",
     "phone_direct": "010-3202-1081",
     "address": "강남구 논현동 124-25 1층 101호",
+    "naver_map_url": "https://map.naver.com/v5/search/%EA%B0%95%EB%82%A8%EA%B5%AC%20%EB%85%BC%ED%98%84%EB%8F%99%20124-25",
     "seo_keywords": "강남 정기청소, 건물 계단청소, 공용화장실 청소, 배수구 청소, 입주청소, 준공청소, 건물청소 전문업체",
     "description": (
         "체계화된 청소의 기준, 청소매뉴얼입니다. "

@@ -803,6 +803,8 @@ if st.session_state.bulk_running:
             st.write("네이버 블로그 작성 중...")
             agent_prompts = get_selected_agent_prompts()
             naver = gen.generate_naver_blog(next_topic["title"], agent_prompts, st.session_state.current_company)
+            footer = gen.generate_blog_footer(naver, st.session_state.current_company)
+            naver = naver + "\n" + footer
             update_blog(next_topic["id"],
                         naver=naver, final=naver, wordpress="",
                         agents=st.session_state.selected_agents)
@@ -1134,6 +1136,8 @@ else:
                 else:
                     st.write("✍️ 블로그 글을 작성하고 있습니다...")
                 naver = gen.generate_naver_blog(topic["title"], agent_prompts, cid)
+                footer = gen.generate_blog_footer(naver, cid)
+                naver = naver + "\n" + footer
                 update_blog(topic["id"], naver=naver, final=naver, agents=st.session_state.selected_agents)
                 s.update(label="✅ 네이버 블로그 생성 완료!", state="complete")
             st.rerun()
@@ -1155,6 +1159,8 @@ else:
                 else:
                     st.write("🔍 SEO 최적화 글을 작성하고 있습니다...")
                 wp = gen.generate_wordpress_blog(topic["title"], topic["title"], agent_prompts, cid)
+                footer = gen.generate_blog_footer(wp, cid)
+                wp = wp + "\n" + footer
                 update_blog(topic["id"], wordpress=wp, final=wp, agents=st.session_state.selected_agents)
                 s.update(label="✅ 워드프레스 생성 완료!", state="complete")
             st.rerun()

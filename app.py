@@ -890,11 +890,7 @@ else:
         if not naver_on and not wp_on:
             visible_agent_ids = {a["id"] for a in AGENTS}
 
-        # 숨겨진 에이전트 안내
-        hidden_names = [a["name"] for a in AGENTS if a["id"] in hidden_ids]
-        if hidden_names:
-            st.caption(f"✅ {', '.join(hidden_names)} — 자동 참여 (필수)")
-        st.caption("아래에서 추가 자문위원을 선택하세요")
+        st.caption("자문위원을 선택하세요")
 
         # UI에 표시할 에이전트 필터링 (숨겨진 것 제외)
         visible_agents = [a for a in AGENTS if a["id"] in visible_agent_ids and a["id"] not in hidden_ids]
@@ -1039,10 +1035,6 @@ else:
             visible_ids2.update(WP_AGENTS)
         if not naver_on2 and not wp_on2:
             visible_ids2 = {a["id"] for a in AGENTS}
-
-        hidden_names2 = [a["name"] for a in AGENTS if a["id"] in hidden_ids2]
-        if hidden_names2:
-            st.caption(f"✅ {', '.join(hidden_names2)} — 자동 참여 (필수)")
 
         # AI 추천 버튼
         rec_col1, rec_col2 = st.columns([3, 1])

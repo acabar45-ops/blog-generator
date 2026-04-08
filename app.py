@@ -560,18 +560,12 @@ with st.sidebar:
         if st.session_state.api_key.strip():
             st.success("✓ Claude 설정됨", icon="✅")
 
-        st.caption("─ Imagen 3 (이미지) ─")
-        if imagen_client.is_authenticated():
-            st.success("✓ Google 인증됨", icon="✅")
+        st.caption("─ Gemini (이미지) ─")
+        import gemini_client
+        if gemini_client.check_api_key():
+            st.success("✓ Gemini 설정됨", icon="✅")
         else:
-            if st.button("🔐 Google 인증", use_container_width=True):
-                with st.spinner("브라우저에서 로그인해주세요..."):
-                    ok = imagen_client.authenticate()
-                if ok:
-                    st.success("인증 성공!")
-                    st.rerun()
-                else:
-                    st.error("인증 실패")
+            st.warning("Gemini API 키 미설정")
 
     st.divider()
 
@@ -1272,7 +1266,7 @@ else:
 
                 if naver_img_paths:
                     st.success(f"✅ 이미지 {len(naver_img_paths)}장 생성 완료")
-                    naver_prompts = imagen_client.parse_image_prompts(blog["naver_images"])
+                    naver_prompts = gemini_client.parse_image_prompts(blog["naver_images"])
                     for img_i, img_path in enumerate(naver_img_paths):
                         col_img, col_btn = st.columns([4, 1])
                         with col_img:
@@ -1281,11 +1275,11 @@ else:
                             st.write("")
                             st.write("")
                             if st.button("🔄", key=f"regen_naver_img_{img_i}", help=f"이미지 {img_i+1} 다시 만들기"):
-                                if not imagen_client.is_authenticated():
-                                    st.warning("Google 인증 필요")
+                                if not gemini_client.is_authenticated():
+                                    st.warning("Gemini API 키 필요")
                                 elif img_i < len(naver_prompts):
                                     with st.spinner(f"이미지 {img_i+1} 재생성 중..."):
-                                        result = imagen_client.regenerate_single_image(
+                                        result = gemini_client.regenerate_single_image(
                                             naver_prompts[img_i], topic["id"], "naver", img_i + 1)
                                     if result["success"]:
                                         st.success("✅ 재생성 완료!")
@@ -1296,24 +1290,24 @@ else:
                                     st.warning("프롬프트를 찾을 수 없습니다.")
 
                     if st.button("🔄 전체 이미지 재생성", use_container_width=True, key="gen_all_img_naver"):
-                        if not imagen_client.is_authenticated():
-                            st.warning("Google 인증이 필요합니다.")
+                        if not gemini_client.is_authenticated():
+                            st.warning("Gemini API 키가 필요합니다.")
                         else:
                             with st.spinner("전체 이미지 재생성 중..."):
-                                results = imagen_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
+                                results = gemini_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
                             ok = sum(1 for r in results if r["success"])
                             if ok:
                                 st.success(f"✅ {ok}장 재생성 완료")
                             st.rerun()
                 else:
                     if st.button("🖼️ Imagen 3 이미지 생성", use_container_width=True, type="primary", key="gen_img_naver"):
-                        if not imagen_client.is_authenticated():
-                            st.warning("Google 인증이 필요합니다. 사이드바에서 인증해주세요.")
+                        if not gemini_client.is_authenticated():
+                            st.warning("Gemini API 키가 필요합니다.")
                         else:
                             with st.status("🖼️ AI가 이미지를 생성하고 있습니다...", expanded=True) as img_s:
                                 st.write("🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원의 콘텐츠 합의 기반...")
                                 st.write("🎨 아트디렉션 자문위원의 프롬프트로 이미지 생성 중...")
-                                results = imagen_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
+                                results = gemini_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
                                 img_s.update(label="✅ 이미지 생성 완료!", state="complete")
                             ok = sum(1 for r in results if r["success"])
                             fail = sum(1 for r in results if not r["success"])
@@ -1458,7 +1452,7 @@ else:
 
                 if wp_img_paths:
                     st.success(f"✅ 이미지 {len(wp_img_paths)}장 생성 완료")
-                    wp_prompts = imagen_client.parse_image_prompts(blog["wp_images"])
+                    wp_prompts = gemini_client.parse_image_prompts(blog["wp_images"])
                     for img_i, img_path in enumerate(wp_img_paths):
                         col_img, col_btn = st.columns([4, 1])
                         with col_img:
@@ -1467,11 +1461,11 @@ else:
                             st.write("")
                             st.write("")
                             if st.button("🔄", key=f"regen_wp_img_{img_i}", help=f"이미지 {img_i+1} 다시 만들기"):
-                                if not imagen_client.is_authenticated():
-                                    st.warning("Google 인증 필요")
+                                if not gemini_client.is_authenticated():
+                                    st.warning("Gemini API 키 필요")
                                 elif img_i < len(wp_prompts):
                                     with st.spinner(f"이미지 {img_i+1} 재생성 중..."):
-                                        result = imagen_client.regenerate_single_image(
+                                        result = gemini_client.regenerate_single_image(
                                             wp_prompts[img_i], topic["id"], "wordpress", img_i + 1)
                                     if result["success"]:
                                         st.success("✅ 재생성 완료!")
@@ -1482,24 +1476,24 @@ else:
                                     st.warning("프롬프트를 찾을 수 없습니다.")
 
                     if st.button("🔄 전체 이미지 재생성", use_container_width=True, key="gen_all_img_wp"):
-                        if not imagen_client.is_authenticated():
-                            st.warning("Google 인증이 필요합니다.")
+                        if not gemini_client.is_authenticated():
+                            st.warning("Gemini API 키가 필요합니다.")
                         else:
                             with st.spinner("전체 이미지 재생성 중..."):
-                                results = imagen_client.generate_blog_images(blog["wp_images"], topic["id"], "wordpress")
+                                results = gemini_client.generate_blog_images(blog["wp_images"], topic["id"], "wordpress")
                             ok = sum(1 for r in results if r["success"])
                             if ok:
                                 st.success(f"✅ {ok}장 재생성 완료")
                             st.rerun()
                 else:
                     if st.button("🖼️ Imagen 3 이미지 생성", use_container_width=True, type="primary", key="gen_img_wp"):
-                        if not imagen_client.is_authenticated():
-                            st.warning("Google 인증이 필요합니다.")
+                        if not gemini_client.is_authenticated():
+                            st.warning("Gemini API 키가 필요합니다.")
                         else:
                             with st.status("🖼️ AI가 이미지를 생성하고 있습니다...", expanded=True) as img_s:
                                 st.write("📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원의 정보 시각화 합의 기반...")
                                 st.write("🎨 아트디렉션 자문위원의 미니멀 프롬프트로 이미지 생성 중...")
-                                results = imagen_client.generate_blog_images(blog["wp_images"], topic["id"], "wordpress")
+                                results = gemini_client.generate_blog_images(blog["wp_images"], topic["id"], "wordpress")
                                 img_s.update(label="✅ 이미지 생성 완료!", state="complete")
                             ok = sum(1 for r in results if r["success"])
                             fail = sum(1 for r in results if not r["success"])

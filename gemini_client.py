@@ -142,3 +142,43 @@ def check_api_key() -> bool:
     if not GEMINI_API_KEY or not GEMINI_API_KEY.strip():
         return False
     return True
+
+
+def is_authenticated() -> bool:
+    """Gemini는 API 키만 있으면 인증 완료"""
+    return check_api_key()
+
+
+def parse_image_prompts(image_plan: str) -> list:
+    """이미지 계획에서 각 이미지의 프롬프트를 추출하여 리스트로 반환"""
+    import re
+    prompts = []
+    blocks = re.split(r"(?=(?:#+ *)?(?:\*\*)?📷)", image_plan)
+    for block in blocks:
+        block = block.strip()
+        if not block:
+            continue
+        match = re.search(
+            r"(?:Gemini|Imagen)\s*프롬프트\s*(?:\*\*)?\s*[:：]\s*(?:\*\*)?\s*\n\s*```[^\n]*\n([\s\S]*?)```",
+            block, re.IGNORECASE
+        )
+        if match:
+            prompt_text = ' '.join(match.group(1).strip().split())
+            if prompt_text:
+                prompts.append(prompt_text)
+                continue
+        match = re.search(
+            r"(?:Gemini|Imagen)\s*프롬프트\s*(?:\*\*)?\s*[:：]\s*(?:\*\*)?\s*(.+)",
+            block, re.IGNORECASE
+        )
+        if match:
+            prompt_text = match.group(1).strip().strip('`').strip()
+            if prompt_text:
+                prompts.append(prompt_text)
+    return prompts
+
+
+def regenerate_single_image(prompt: str, topic_id: int, platform: str, image_index: int) -> dict:
+    """특정 이미지 1장만 재생성"""
+    filename = f"topic_{topic_id:03d}_{platform}_img_{image_index:02d}"
+    return generate_image(prompt, filename)

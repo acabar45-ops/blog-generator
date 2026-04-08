@@ -494,9 +494,6 @@ with st.sidebar:
     st.divider()
 
     # ── AI 주제 생성 ──
-    if "ai_topics" not in st.session_state:
-        st.session_state.ai_topics = []
-
     gen_col1, gen_col2 = st.columns([3, 1])
     with gen_col1:
         st.markdown("##### 💡 AI 주제 생성")
@@ -508,49 +505,66 @@ with st.sidebar:
             st.stop()
         with st.spinner("💡 주제발굴사가 새 주제를 찾고 있습니다..."):
             existing_titles = [t["title"] for t in TOPICS]
-            existing_titles += [t["title"] for t in st.session_state.ai_topics]
             result = pipeline.generate_topic(st.session_state.current_company, existing_titles)
             if result:
-                new_id = max([t["id"] for t in TOPICS] + [t["id"] for t in st.session_state.ai_topics], default=0) + 1
+                new_id = max([t["id"] for t in TOPICS], default=0) + 1
                 result["id"] = new_id
                 result["source"] = "ai"
-                st.session_state.ai_topics.append(result)
+                # 회사 JSON에 영구 저장
+                from company_manager import load_company, save_company
+                company = load_company(st.session_state.current_company)
+                company.setdefault("topics", []).append(result)
+                save_company(st.session_state.current_company, company)
                 st.rerun()
             else:
                 st.error("주제 생성에 실패했습니다. 다시 시도해주세요.")
 
+    # 주제 목록 다시 로드 (방금 추가했을 수 있으므로)
+    import random
+    TOPICS = get_topics()
+
+    # 미작성/작성완료 분리
+    undone_naver = [t for t in TOPICS if t.get("platform") == "naver" and not is_done(t["id"])]
+    undone_wp = [t for t in TOPICS if t.get("platform") == "wordpress" and not is_done(t["id"])]
+    done_topics = [t for t in TOPICS if is_done(t["id"])]
+
     topic_container = st.container(height=520)
     with topic_container:
-        # AI 생성 주제 표시
-        ai_topics = st.session_state.ai_topics
-        if ai_topics:
-            st.caption(f"💡 AI 생성 주제 ({len(ai_topics)}개)")
-            for i, t in enumerate(ai_topics):
-                platform_icon = "📝" if t.get("platform") == "naver" else "🌐"
-                done_icon = "✅" if is_done(t["id"]) else "⬜"
-                label = f'{done_icon} {platform_icon} {t["title"]}'
+        # ── 미작성 주제 ──
+        if undone_naver:
+            st.caption(f"📝 네이버 미작성 ({len(undone_naver)}개)")
+            for t in undone_naver[:10]:
                 is_sel = st.session_state.selected_id == t["id"]
-                if st.button(label, key=f"ai_topic_{t['id']}", use_container_width=True,
-                             type="primary" if is_sel else "secondary"):
-                    st.session_state.selected_id = t["id"]
-                    st.session_state.page = "main"
-                    st.rerun()
-        else:
-            st.info("✨ '새 주제 만들기' 버튼을 눌러 주제를 생성하세요.")
-
-        # 기존 주제 중 완료된 것만 표시
-        done_topics = [t for t in TOPICS if is_done(t["id"])]
-        if done_topics:
-            st.divider()
-            st.caption(f"✅ 완료된 주제 ({len(done_topics)}개)")
-            for t in done_topics:
-                platform_icon = "📝" if t.get("platform") == "naver" else "🌐"
-                label = f'✅ {platform_icon} {t["title"]}'
-                is_sel = st.session_state.selected_id == t["id"]
+                ai_badge = " 💡" if t.get("source") == "ai" else ""
+                label = f'⬜ {t["title"]}{ai_badge}'
                 if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
                              type="primary" if is_sel else "secondary"):
                     st.session_state.selected_id = t["id"]
-                    st.session_state.page = "main"
+                    st.rerun()
+
+        if undone_wp:
+            st.divider()
+            st.caption(f"🌐 워드프레스 미작성 ({len(undone_wp)}개)")
+            for t in undone_wp[:10]:
+                is_sel = st.session_state.selected_id == t["id"]
+                ai_badge = " 💡" if t.get("source") == "ai" else ""
+                label = f'⬜ {t["title"]}{ai_badge}'
+                if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
+                             type="primary" if is_sel else "secondary"):
+                    st.session_state.selected_id = t["id"]
+                    st.rerun()
+
+        # ── 작성 완료 ──
+        if done_topics:
+            st.divider()
+            st.caption(f"✅ 작성 완료 ({len(done_topics)}개)")
+            for t in done_topics:
+                platform_icon = "📝" if t.get("platform") == "naver" else "🌐"
+                is_sel = st.session_state.selected_id == t["id"]
+                label = f'✅ {platform_icon} {t["title"]}'
+                if st.button(label, key=f"done_{t['id']}", use_container_width=True,
+                             type="primary" if is_sel else "secondary"):
+                    st.session_state.selected_id = t["id"]
                     st.rerun()
 
 

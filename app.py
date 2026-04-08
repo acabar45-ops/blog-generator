@@ -1300,7 +1300,7 @@ else:
                                 st.success(f"✅ {ok}장 재생성 완료")
                             st.rerun()
                 else:
-                    if st.button("🖼️ AI 이미지 이미지 생성", use_container_width=True, type="primary", key="gen_img_naver"):
+                    if st.button("🖼️ AI 이미지 생성", use_container_width=True, type="primary", key="gen_img_naver"):
                         if not gemini_client.is_authenticated():
                             st.warning("Gemini API 키가 필요합니다.")
                         else:
@@ -1486,7 +1486,7 @@ else:
                                 st.success(f"✅ {ok}장 재생성 완료")
                             st.rerun()
                 else:
-                    if st.button("🖼️ AI 이미지 이미지 생성", use_container_width=True, type="primary", key="gen_img_wp"):
+                    if st.button("🖼️ AI 이미지 생성", use_container_width=True, type="primary", key="gen_img_wp"):
                         if not gemini_client.is_authenticated():
                             st.warning("Gemini API 키가 필요합니다.")
                         else:

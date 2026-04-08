@@ -612,14 +612,20 @@ if st.session_state.selected_id is None:
             st.stop()
         sel_platform = "naver" if "네이버" in custom_platform else "wordpress"
         sel_label = "네이버" if sel_platform == "naver" else "워드프레스"
+        import time as _time
         with st.status(f"커스텀 주제 작성 중 ({sel_label})...", expanded=True) as s:
+            _t0 = _time.time()
             topic_title = st.session_state.custom_topic.strip()
             results = {}
             cid = st.session_state.current_company
             st.write(f"🍎 파이프라인 — {sel_label} 생성 중...")
             r = pipeline.run_pipeline(topic_title, cid, sel_platform, status_callback=lambda msg: st.write(msg))
             results[sel_platform] = r["blog"]
-            s.update(label="✅ 커스텀 주제 완료!", state="complete")
+            elapsed = _time.time() - _t0
+            minutes = int(elapsed // 60)
+            seconds = int(elapsed % 60)
+            time_str = f"{minutes}분 {seconds}초" if minutes > 0 else f"{seconds}초"
+            s.update(label=f"✅ 커스텀 주제 완료! · {time_str}", state="complete")
 
         if results.get("naver"):
             st.markdown("##### 📝 네이버 블로그")
@@ -668,7 +674,9 @@ do_gen = st.button(gen_label, type="primary", use_container_width=True, key=f"ge
 if do_gen:
     if not check_api_key():
         st.stop()
+    import time as _time
     with st.status(f"🍎 파이프라인 — {platform_label} {'재' if is_already_done else ''}생성 중...", expanded=True) as s:
+        _t0 = _time.time()
         result = pipeline.run_pipeline(
             topic["title"], cid, topic_platform,
             status_callback=lambda msg: st.write(msg)
@@ -689,7 +697,11 @@ if do_gen:
             if img_prompts:
                 blog_data["wp_images"] = img_prompts
         update_blog(topic["id"], **blog_data)
-        s.update(label=f"✅ 파이프라인 완료! QA {qa_score}/80", state="complete")
+        elapsed = _time.time() - _t0
+        minutes = int(elapsed // 60)
+        seconds = int(elapsed % 60)
+        time_str = f"{minutes}분 {seconds}초" if minutes > 0 else f"{seconds}초"
+        s.update(label=f"✅ 파이프라인 완료! QA {qa_score}/80 · {time_str}", state="complete")
     blog = get_blog(topic["id"])
     is_already_done = True
 

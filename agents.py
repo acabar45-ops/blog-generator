@@ -183,8 +183,8 @@ NAVER_HIDDEN = ["storyteller"]        # 네이버에서 자동 참여 (UI 미표
 WP_HIDDEN = ["seo_ai"]               # 워드프레스에서 자동 참여 (UI 미표시)
 
 # 플랫폼별 선택 가능 에이전트 (UI에 표시)
-NAVER_AGENTS = ["strategy", "seo_ai", "monetize", "data", "risk", "realestate", "conversion", "ux", "automation"]
-WP_AGENTS = ["storyteller", "strategy", "monetize", "data", "risk", "realestate", "conversion", "ux", "automation"]
+NAVER_AGENTS = ["realestate", "conversion", "risk", "ux"]
+WP_AGENTS = ["strategy", "monetize", "data", "automation"]
 
 def recommend_agents(topic_title: str, platform: str, api_key: str, model: str = "claude-sonnet-4-6") -> list[str]:
     """글 제목과 플랫폼을 보고 최적의 에이전트 2명을 추천한다.

@@ -100,10 +100,10 @@ def generate_image(prompt: str, filename: str = "image", aspect_ratio: str = Non
         elif "webp" in mime_type:
             ext = "webp"
 
-        # 파일 저장 (블로그 본문 폭 680px에 맞춰 리사이즈)
+        # 파일 저장 (블로그 본문 폭의 85% = 578px로 리사이즈, 좌우 여백 확보)
         from PIL import Image
         import io as _io
-        BLOG_WIDTH = 680
+        BLOG_WIDTH = 578
         raw_bytes = base64.b64decode(image_data)
         img = Image.open(_io.BytesIO(raw_bytes))
         if img.width > BLOG_WIDTH:

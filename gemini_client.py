@@ -187,14 +187,17 @@ def is_authenticated() -> bool:
 
 
 def parse_image_prompts(image_plan: str) -> list:
-    """이미지 계획에서 각 이미지의 프롬프트를 추출하여 리스트로 반환"""
+    """이미지 계획에서 각 이미지의 프롬프트를 추출하여 리스트로 반환.
+    📷(사진), 📊(인포그래픽), 📈(차트), 📐(다이어그램), 🖼️(일반) 등 모든 이미지 마커 인식."""
     import re
     prompts = []
-    blocks = re.split(r"(?=(?:#+ *)?(?:\*\*)?📷)", image_plan)
+    # 모든 이미지 블록 마커 인식 (📷📊📈📐🖼️ 등)
+    blocks = re.split(r"(?=(?:#+ *)?(?:\*\*)?(?:📷|📊|📈|📐|🖼️|이미지\s*\d))", image_plan)
     for block in blocks:
         block = block.strip()
         if not block:
             continue
+        # 패턴 1: 코드블록 ```...```
         match = re.search(
             r"(?:Gemini|Imagen)\s*프롬프트\s*(?:\*\*)?\s*[:：]\s*(?:\*\*)?\s*\n\s*```[^\n]*\n([\s\S]*?)```",
             block, re.IGNORECASE
@@ -204,9 +207,29 @@ def parse_image_prompts(image_plan: str) -> list:
             if prompt_text:
                 prompts.append(prompt_text)
                 continue
+        # 패턴 2: 한 줄 Gemini/Imagen 프롬프트
         match = re.search(
             r"(?:Gemini|Imagen)\s*프롬프트\s*(?:\*\*)?\s*[:：]\s*(?:\*\*)?\s*(.+)",
             block, re.IGNORECASE
+        )
+        if match:
+            prompt_text = match.group(1).strip().strip('`').strip()
+            if prompt_text:
+                prompts.append(prompt_text)
+                continue
+        # 패턴 3: 프롬프트/Prompt 키워드 (인포그래픽용)
+        match = re.search(
+            r"(?:프롬프트|[Pp]rompt)\s*(?:\*\*)?\s*[:：]\s*(?:\*\*)?\s*\n\s*```[^\n]*\n([\s\S]*?)```",
+            block
+        )
+        if match:
+            prompt_text = ' '.join(match.group(1).strip().split())
+            if prompt_text:
+                prompts.append(prompt_text)
+                continue
+        match = re.search(
+            r"(?:프롬프트|[Pp]rompt)\s*(?:\*\*)?\s*[:：]\s*(?:\*\*)?\s*(.+)",
+            block
         )
         if match:
             prompt_text = match.group(1).strip().strip('`').strip()

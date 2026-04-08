@@ -173,7 +173,7 @@ def _parse_image_layouts(image_plan):
     """이미지 계획에서 각 이미지의 레이아웃 정보 추출"""
     import re as _re
     layouts = []
-    blocks = _re.split(r"(?=📷\s*이미지)", image_plan)
+    blocks = _re.split(r"(?=(?:📷|📊|📈|📐|🖼️)\s*(?:이미지|인포그래픽|차트|다이어그램))", image_plan)
     layout_pattern = _re.compile(r"레이아웃\s*[:：]\s*(\S+)")
     for block in blocks:
         block = block.strip()
@@ -282,7 +282,7 @@ def render_blog_with_images(blog_content, image_plan, image_paths, platform="nav
     def _parse_image_locations(plan_text):
         """이미지별 위치 힌트 추출"""
         locations = []
-        blocks = _re.split(r"(?=(?:#+ *)?(?:\*\*)?📷)", plan_text)
+        blocks = _re.split(r"(?=(?:#+ *)?(?:\*\*)?(?:📷|📊|📈|📐|🖼️|이미지\s*\d))", plan_text)
         for block in blocks:
             block = block.strip()
             if not block:

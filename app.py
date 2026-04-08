@@ -716,12 +716,12 @@ if do_gen:
         img_prompts = result.get("image_prompts", "")
         if topic_platform == "naver":
             blog_data = dict(naver=blog_text, final=blog_text,
-                             agents=["pipeline_7"], qa_score=qa_score)
+                             agents=["pipeline_5"], qa_score=qa_score)
             if img_prompts:
                 blog_data["naver_images"] = img_prompts
         else:
             blog_data = dict(wordpress=blog_text,
-                             agents=["pipeline_7"], qa_score=qa_score)
+                             agents=["pipeline_5"], qa_score=qa_score)
             if img_prompts:
                 blog_data["wp_images"] = img_prompts
         update_blog(topic["id"], **blog_data)
@@ -753,7 +753,7 @@ if blog_content:
     if used_agents:
         names = []
         for aid in used_agents:
-            if aid in ("pipeline_7", "pipeline_23"):
+            if aid in ("pipeline_5", "pipeline_23"):
                 names.append("🍎파이프라인")
         if names:
             st.caption(f"참여 에이전트: {' · '.join(names)}")

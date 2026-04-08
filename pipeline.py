@@ -45,14 +45,7 @@ PLATFORM_RULES = {
             "- 마무리: 독자에게 힘을 주는 한 마디로 끝\n"
             "- 금지: 결론 먼저 제시, 딱딱한 보고서 톤"
         ),
-        "editor": (
-            "[네이버 블로그 편집 규칙]\n"
-            "- 문장 길이: 25~35자 목표\n"
-            "- 어미: ~합니다/~입니다 70% + ~죠/~세요 30% (편한 느낌)\n"
-            "- 인용구(>): 건물주 말투 활용 (\"전화만 안 왔으면 좋겠어요\")\n"
-            "- 이모지: H2 소제목에 1개씩 허용\n"
-            "- 전체 톤이 '사람 냄새 나는 글'이어야 함"
-        ),
+        # editor 역할은 writer에 통합됨
         "image_director": (
             "[네이버 블로그 이미지 규칙]\n"
             "- 스타일: 현장감·스마트폰 촬영 느낌·리얼리즘\n"
@@ -71,8 +64,8 @@ PLATFORM_RULES = {
             "  9. 디테일 클로즈업\n"
             "  10. 건물 관리 도구/장비"
         ),
-        "seo_converter": (
-            "[네이버 블로그 SEO/전환 규칙]\n"
+        "seo_assembler": (
+            "[네이버 블로그 SEO+조립 규칙]\n"
             "- SEO 목표: 체류시간 증가, 공감·저장 유도, 자연스러운 문의 발생\n"
             "- 키워드: 자연 삽입 2~4회, 맥락이 횟수보다 중요\n"
             "- 메타데이터: 태그 5~8개만 (메타 디스크립션/OG/슬러그 불필요)\n"
@@ -81,11 +74,6 @@ PLATFORM_RULES = {
             "  → 중간 CTA 1줄 (부드러운 제안)\n"
             "  → 마무리 CTA 1~2줄 (카카오톡 안내)\n"
             "- FAQ: 포함하지 마세요\n"
-            "- 내부 링크: 불필요\n"
-            "- AI 검색 인용 패턴: 불필요"
-        ),
-        "assembler": (
-            "[네이버 블로그 조립 규칙]\n"
             "- 전체 톤: 편하고 친근하게, '사람이 쓴 글' 느낌\n"
             "- CTA는 글 흐름에 자연스럽게 녹이기\n"
             "- 푸터: 슬로건 + 회사 정보 (간결하게)"
@@ -117,15 +105,7 @@ PLATFORM_RULES = {
             "- 마무리: 핵심 요약 + 행동 유도\n"
             "- 금지: 장면 묘사로 시작, 과도한 감성, FAQ 누락"
         ),
-        "editor": (
-            "[워드프레스 편집 규칙]\n"
-            "- 문장 길이: 35~45자 허용 (네이버보다 길어도 OK)\n"
-            "- 어미: ~합니다/~입니다 85% + ~죠 15% (전문적 톤 유지)\n"
-            "- 인용구(>): 전문가 의견, 데이터 인용에 사용\n"
-            "- 이모지: H2에만, 최소한으로 (없어도 OK)\n"
-            "- H1/H2/H3 위계가 정확한지 확인\n"
-            "- FAQ 섹션이 있는지 확인 — 없으면 추가 지시"
-        ),
+        # editor 역할은 writer에 통합됨
         "image_director": (
             "[워드프레스 이미지 규칙]\n"
             "- 스타일: 미니멀·전문적·정보 전달 중심\n"
@@ -142,8 +122,8 @@ PLATFORM_RULES = {
             "  7. 사례 카드 스타일 (case study card, clean UI)\n"
             "  8. 시스템 구조도 (technical illustration)"
         ),
-        "seo_converter": (
-            "[워드프레스 SEO/전환 규칙]\n"
+        "seo_assembler": (
+            "[워드프레스 SEO+조립 규칙]\n"
             "- SEO 목표: 검색 상위 노출, E-E-A-T 확보, 유입→문의 전환\n"
             "- 키워드: 제목+H2+본문에 5~8회. 키워드 밀도 1.5~2.5% 타겟\n"
             "- 메타데이터: 전부 작성\n"
@@ -153,19 +133,11 @@ PLATFORM_RULES = {
             "  → 슬러그: 영문 URL 경로\n"
             "  → 태그: 5~8개\n"
             "- CTA: 3단계 구조\n"
-            "  → 1단계: 공감 마무리 (\"관리의 시작은 현실을 아는 것입니다\")\n"
-            "  → 2단계: 신뢰 한 줄 (\"100개+ 건물 관리 경험\")\n"
+            "  → 1단계: 공감 마무리\n"
+            "  → 2단계: 신뢰 한 줄\n"
             "  → 3단계: 행동 유도 (카카오톡 상담 안내)\n"
             "- FAQ: 본문에 FAQ가 있는지 확인. 없으면 3~5개 추가\n"
-            "- 내부 링크: 관련 글 2개 이상 링크 제안\n"
-            "- AI 검색 인용: \"X는 Y입니다\" 형태의 정의 문장 2~3개 확인"
-        ),
-        "assembler": (
-            "[워드프레스 조립 규칙]\n"
             "- H1/H2/H3 계층 구조 정확하게 유지\n"
-            "- FAQ 섹션이 글 하단에 있는지 확인\n"
-            "- 메타 디스크립션을 글 맨 하단에 별도 표기\n"
-            "- CTA는 3단계 구조로 자연스럽게 삽입\n"
             "- 푸터: 슬로건 + 회사 정보"
         ),
     },
@@ -257,8 +229,8 @@ def run_pipeline(
     outputs["strategist"] = _call_agent("strategist", base_context, platform)
     notify(f"  ✅ {agent['name']} 완료")
 
-    # ── PHASE 1: 글쓰기 ──
-    notify(f"✍️ Phase 1: 글쓰기 ({platform_label})...")
+    # ── PHASE 1: 글쓰기+편집 (통합) ──
+    notify(f"✍️ Phase 1: 글쓰기+편집 ({platform_label})...")
     writer_context = (
         f"{base_context}\n\n"
         f"[크리에이티브 브리프]\n{outputs['strategist']}"
@@ -268,62 +240,39 @@ def run_pipeline(
     outputs["writer"] = _call_agent("writer", writer_context, platform)
     notify(f"  ✅ {agent['name']} 완료")
 
-    # ── PHASE 2: 편집 ──
-    notify(f"⚗️ Phase 2: 편집 ({platform_label})...")
-    editor_context = (
-        f"{base_context}\n\n"
-        f"[크리에이티브 브리프]\n{outputs['strategist']}\n\n"
-        f"[현재 본문 — 이 글을 편집하세요]\n{outputs['writer']}"
-    )
-    agent = get_pipeline_agent("editor")
-    notify(f"  {agent['icon']} **{agent['name']}** 실행 중...")
-    outputs["editor"] = _call_agent("editor", editor_context, platform)
-    notify(f"  ✅ {agent['name']} 완료")
+    written_text = outputs["writer"]
 
-    edited_text = outputs["editor"]
-
-    # ── PHASE 3: 이미지 + SEO전환 (병렬) ──
-    notify(f"🎬📊 Phase 3: 이미지 + SEO전환 (병렬, {platform_label})...")
+    # ── PHASE 2: 이미지 + SEO조립 (병렬) ──
+    notify(f"🎬📊 Phase 2: 이미지 + SEO조립 (병렬, {platform_label})...")
 
     img_context = (
         f"{base_context}\n\n{IMAGE_COMMON_RULE}\n\n"
-        f"[본문]\n{edited_text}"
+        f"[본문]\n{written_text}"
     )
     seo_context = (
         f"{base_context}\n\n"
         f"[크리에이티브 브리프]\n{outputs['strategist']}\n\n"
-        f"[본문]\n{edited_text}"
+        f"[본문 — SEO 최적화 + CTA 삽입 + 푸터 조립하여 완성본을 만드세요]\n{written_text}"
     )
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
         agent_img = get_pipeline_agent("image_director")
-        agent_seo = get_pipeline_agent("seo_converter")
+        agent_seo = get_pipeline_agent("seo_assembler")
         notify(f"  {agent_img['icon']} **{agent_img['name']}** 실행 중...")
         notify(f"  {agent_seo['icon']} **{agent_seo['name']}** 실행 중...")
 
         img_fut = pool.submit(_call_agent, "image_director", img_context, platform)
-        seo_fut = pool.submit(_call_agent, "seo_converter", seo_context, platform)
+        seo_fut = pool.submit(_call_agent, "seo_assembler", seo_context, platform)
 
         outputs["image_director"] = img_fut.result()
         notify(f"  ✅ {agent_img['name']} 완료")
-        outputs["seo_converter"] = seo_fut.result()
+        outputs["seo_assembler"] = seo_fut.result()
         notify(f"  ✅ {agent_seo['name']} 완료")
 
-    # ── PHASE 4: 최종 조립 ──
-    notify("🔨 Phase 4: 최종 조립...")
-    assemble_context = (
-        f"{base_context}\n\n"
-        f"[편집된 본문]\n{edited_text}\n\n"
-        f"[SEO + CTA + 메타데이터 + 푸터 슬로건]\n{outputs['seo_converter']}"
-    )
-    agent = get_pipeline_agent("assembler")
-    notify(f"  {agent['icon']} **{agent['name']}** 실행 중...")
-    outputs["assembler"] = _call_agent("assembler", assemble_context, platform)
-    assembled_blog = outputs["assembler"]
-    notify(f"  ✅ {agent['name']} 완료")
+    assembled_blog = outputs["seo_assembler"]
 
-    # ── PHASE 5: 품질 감사 ──
-    notify("🏅 Phase 5: 품질 감사...")
+    # ── PHASE 3: 품질 감사 ──
+    notify("🏅 Phase 3: 품질 감사...")
     agent = get_pipeline_agent("qa_auditor")
     notify(f"  {agent['icon']} **{agent['name']}** 실행 중...")
     outputs["qa_auditor"] = _call_agent("qa_auditor", f"[완성된 블로그]\n{assembled_blog}", platform)
@@ -331,11 +280,11 @@ def run_pipeline(
     notify(f"  ✅ {agent['name']} 완료")
     notify(f"  🏅 QA 점수: **{qa_score}/80** {'✅ PASS' if qa_score >= PIPELINE_QA_THRESHOLD else '❌ FAIL'}")
 
-    # ── PHASE 6: 조건부 수정 (QA 실패 시) ──
+    # ── PHASE 4: 조건부 수정 (QA 실패 시) ──
     revision_round = 0
     while qa_score < PIPELINE_QA_THRESHOLD and revision_round < PIPELINE_MAX_REVISION_ROUNDS:
         revision_round += 1
-        notify(f"🔬 Phase 6: 수정 (라운드 {revision_round}/{PIPELINE_MAX_REVISION_ROUNDS})...")
+        notify(f"🔬 Phase 4: 수정 (라운드 {revision_round}/{PIPELINE_MAX_REVISION_ROUNDS})...")
 
         agent = get_pipeline_agent("reviser")
         notify(f"  {agent['icon']} **{agent['name']}** 실행 중...")
@@ -355,11 +304,11 @@ def run_pipeline(
     if qa_score < PIPELINE_QA_THRESHOLD:
         notify(f"  ⚠️ QA {qa_score}/80 — 최대 수정 횟수 도달, 현재 버전으로 진행")
 
-    notify(f"✅ 파이프라인 완료 ({platform_label}, 7 에이전트, QA: {qa_score}/80)")
+    notify(f"✅ 파이프라인 완료 ({platform_label}, 5 에이전트, QA: {qa_score}/80)")
 
     return {
         "blog": assembled_blog,
-        "metadata": outputs.get("seo_converter", ""),
+        "metadata": outputs.get("seo_assembler", ""),
         "image_prompts": outputs.get("image_director", ""),
         "qa_score": qa_score,
         "qa_report": outputs.get("qa_auditor", ""),

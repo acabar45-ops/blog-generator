@@ -32,7 +32,6 @@ def _select_company():
 if not _select_company():
     st.stop()
 
-from agents import AGENTS, CUSTOM_AGENT, NAVER_HIDDEN, WP_HIDDEN, NAVER_AGENTS, WP_AGENTS, recommend_agents
 from storage import load_blogs, save_blog
 from company_manager import (
     list_companies, load_company, save_company, delete_company,
@@ -40,7 +39,6 @@ from company_manager import (
 )
 import generator as gen
 import pipeline
-from config import PIPELINE_ENABLED
 import gemini_client
 from config import CLAUDE_API_KEY
 
@@ -154,7 +152,6 @@ defaults = {
     "api_key": CLAUDE_API_KEY,
     "platform_naver": True,
     "platform_wp": False,
-    "selected_agents": [],
     "custom_agent_prompt": "",
     "custom_topic": "",
     "current_company": "houseman",
@@ -210,84 +207,6 @@ def check_api_key():
         return False
     gen.CLAUDE_API_KEY = key
     return True
-
-def _auto_recommend_agents(topic_title: str):
-    """토픽 선택 시 플랫폼에 맞는 에이전트 2명을 자동 추천"""
-    platform = "naver" if st.session_state.get("platform_naver") else "wordpress"
-    try:
-        recs = recommend_agents(topic_title, platform, CLAUDE_API_KEY)
-        st.session_state.selected_agents = recs
-    except Exception:
-        pass  # 실패 시 기존 선택 유지
-
-
-def get_selected_agent_prompts():
-    """선택된 에이전트 + 플랫폼 필수 에이전트의 프롬프트를 합쳐서 반환"""
-    # 숨겨진 필수 에이전트 자동 추가
-    all_ids = list(st.session_state.selected_agents)
-    if st.session_state.get("platform_naver"):
-        for hid in NAVER_HIDDEN:
-            if hid not in all_ids:
-                all_ids.insert(0, hid)
-    if st.session_state.get("platform_wp"):
-        for hid in WP_HIDDEN:
-            if hid not in all_ids:
-                all_ids.insert(0, hid)
-
-    prompts = []
-    for agent_id in all_ids:
-        if agent_id == "custom":
-            if st.session_state.custom_agent_prompt.strip():
-                prompts.append(f"[커스텀 에이전트]\n{st.session_state.custom_agent_prompt}")
-        else:
-            agent = next((a for a in AGENTS if a["id"] == agent_id), None)
-            if agent:
-                prompts.append(f"[{agent['field']} — {agent['name']}]\n{agent['prompt']}")
-    return "\n\n".join(prompts)
-
-def _collab_render(msg):
-    """이미지 팀 협업 콜백 — 토론 스토리를 스타일리시하게 렌더링"""
-    if not msg or not msg.strip():
-        return
-    m = msg.strip()
-    # 구분선
-    if m.startswith("━━━"):
-        st.markdown(f'<div style="background:linear-gradient(90deg,#0071e3,#34aadc); padding:6px 14px; border-radius:6px; margin:10px 0 6px; font-size:12px; font-weight:bold; color:#fff;">{m.replace("━━━","").strip()}</div>', unsafe_allow_html=True)
-    # 사람 입장
-    elif m.startswith(("🏢 **", "💡 **", "🎨 **", "📊 **", "📐 **")):
-        st.markdown(f'<div style="font-size:13px; font-weight:bold; margin-top:6px;">{m}</div>', unsafe_allow_html=True)
-    # 커리어 / 인용
-    elif m.startswith("  └"):
-        text = m[3:].strip()
-        if text.startswith("_") and text.endswith("_"):
-            # 인용문
-            st.markdown(f'<div style="font-size:11px; color:#0071e3; font-style:italic; margin-left:20px; margin-bottom:4px;">💬 {text[1:-1]}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div style="font-size:10px; color:#999; margin-left:20px;">{text}</div>', unsafe_allow_html=True)
-    # 토론 하이라이트 제목
-    elif m.startswith("💬 **토론"):
-        st.markdown(f'<div style="font-size:12px; font-weight:bold; margin-top:8px; color:#34aadc;">💬 토론 하이라이트</div>', unsafe_allow_html=True)
-    # 토론 발언
-    elif m.startswith("  🏢") or m.startswith("  💡") or m.startswith("  📊") or m.startswith("  📐") or m.startswith("  🎨"):
-        st.markdown(f'<div style="font-size:11px; margin-left:16px; margin-bottom:2px; color:#ddd; line-height:1.5;">{m.strip()}</div>', unsafe_allow_html=True)
-    # 합의
-    elif m.startswith("  🤝"):
-        st.markdown(f'<div style="font-size:11px; margin-left:16px; padding:3px 8px; background:#1a2e1a; border-left:2px solid #27AE60; border-radius:4px; color:#27AE60; margin-bottom:4px;">{m.strip()}</div>', unsafe_allow_html=True)
-    # 승패 결과
-    elif m.startswith("  🥊"):
-        st.markdown(f'<div style="font-size:11px; margin-left:16px; padding:4px 10px; background:#2e1a1a; border-left:3px solid #E74C3C; border-radius:4px; color:#FF6B6B; margin-bottom:4px; font-weight:bold;">{m.strip()}</div>', unsafe_allow_html=True)
-    # 합의 결과
-    elif m.startswith("  📌"):
-        st.markdown(f'<div style="font-size:10px; margin-left:16px; padding:2px 8px; background:#1a1a2e; border-left:2px solid #4A90D9; border-radius:4px; color:#7EB5E5; margin-bottom:6px;">{m.strip()}</div>', unsafe_allow_html=True)
-    # 스코어보드
-    elif m.startswith("🏆"):
-        st.markdown(f'<div style="font-size:13px; padding:8px 14px; background:linear-gradient(135deg,#2e1a00,#1a1a2e); border:1px solid #0071e3; border-radius:8px; text-align:center; margin:6px 0;">{m}</div>', unsafe_allow_html=True)
-    # 완료
-    elif m.startswith("✅"):
-        st.markdown(f'<div style="font-size:12px; font-weight:bold; color:#27AE60; margin-top:6px;">{m}</div>', unsafe_allow_html=True)
-    # 일반 진행 메시지
-    else:
-        st.write(m)
 
 def get_generated_image_paths(topic_id, platform):
     """생성된 이미지 파일 경로 목록 반환"""
@@ -691,7 +610,6 @@ with st.sidebar:
             if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
                          type="primary" if is_sel else "secondary"):
                 st.session_state.selected_id = t["id"]
-                _auto_recommend_agents(t["title"])
                 st.session_state.page = "main"
                 st.rerun()
 
@@ -894,31 +812,21 @@ if st.session_state.bulk_running:
     if next_topic:
         with st.status(f"⏳ [{next_topic['id']:03d}] {next_topic['title']}", expanded=True) as s:
             cid = st.session_state.current_company
-            if st.session_state.get("pipeline_mode"):
-                st.write("🍎 Apple 파이프라인 실행 중...")
-                result = pipeline.run_pipeline(
-                    next_topic["title"], cid, "naver",
-                    status_callback=lambda msg: st.write(msg)
-                )
-                naver = result["blog"]
-                footer = gen.generate_blog_footer(naver, cid)
-                naver = naver + "\n" + footer
-                img_prompts = result.get("image_prompts", "")
-                blog_data = dict(naver=naver, final=naver, wordpress="",
-                                 agents=["pipeline_7"],
-                                 qa_score=result.get("qa_score", 0))
-                if img_prompts:
-                    blog_data["naver_images"] = img_prompts
-                update_blog(next_topic["id"], **blog_data)
-            else:
-                st.write("네이버 블로그 작성 중...")
-                agent_prompts = get_selected_agent_prompts()
-                naver = gen.generate_naver_blog(next_topic["title"], agent_prompts, cid)
-                footer = gen.generate_blog_footer(naver, cid)
-                naver = naver + "\n" + footer
-                update_blog(next_topic["id"],
-                            naver=naver, final=naver, wordpress="",
-                            agents=st.session_state.selected_agents)
+            st.write("🍎 Apple 파이프라인 실행 중...")
+            result = pipeline.run_pipeline(
+                next_topic["title"], cid, "naver",
+                status_callback=lambda msg: st.write(msg)
+            )
+            naver = result["blog"]
+            footer = gen.generate_blog_footer(naver, cid)
+            naver = naver + "\n" + footer
+            img_prompts = result.get("image_prompts", "")
+            blog_data = dict(naver=naver, final=naver, wordpress="",
+                             agents=["pipeline_7"],
+                             qa_score=result.get("qa_score", 0))
+            if img_prompts:
+                blog_data["naver_images"] = img_prompts
+            update_blog(next_topic["id"], **blog_data)
             s.update(label=f"✅ {next_topic['title']}", state="complete")
         st.rerun()
     else:
@@ -950,13 +858,11 @@ elif st.session_state.page == "all_view":
         if done:
             if c4.button("보기", key=f"v_{t['id']}", use_container_width=True):
                 st.session_state.selected_id = t["id"]
-                _auto_recommend_agents(t["title"])
                 st.session_state.page = "main"
                 st.rerun()
         else:
             if c4.button("생성", key=f"g_{t['id']}", use_container_width=True):
                 st.session_state.selected_id = t["id"]
-                _auto_recommend_agents(t["title"])
                 st.session_state.page = "main"
                 st.rerun()
 
@@ -1002,95 +908,6 @@ else:
 
         st.divider()
 
-        # ── STEP 2: 에이전트 선택 ──
-        st.markdown("##### 📌 STEP 2. 에이전트 선택 (복수)")
-        naver_on = st.session_state.get("platform_naver", False)
-        wp_on = st.session_state.get("platform_wp", False)
-
-        # 플랫폼별 숨겨진 필수 에이전트 결정
-        hidden_ids = set()
-        visible_agent_ids = set()
-        if naver_on:
-            hidden_ids.update(NAVER_HIDDEN)
-            visible_agent_ids.update(NAVER_AGENTS)
-        if wp_on:
-            hidden_ids.update(WP_HIDDEN)
-            visible_agent_ids.update(WP_AGENTS)
-        # 둘 다 안 선택이면 전체 표시
-        if not naver_on and not wp_on:
-            visible_agent_ids = {a["id"] for a in AGENTS}
-
-        st.caption("자문위원을 선택하세요")
-
-        # UI에 표시할 에이전트 필터링 (숨겨진 것 제외)
-        visible_agents = [a for a in AGENTS if a["id"] in visible_agent_ids and a["id"] not in hidden_ids]
-
-        cols_per_row = 6
-        num_agents = len(visible_agents)
-        num_rows = (num_agents + cols_per_row - 1) // cols_per_row
-        rows = []
-        for _ in range(num_rows):
-            rows.extend(st.columns(cols_per_row))
-        current_agents = list(st.session_state.selected_agents)
-
-        for i, agent in enumerate(visible_agents):
-            with rows[i]:
-                sp = agent.get('superpower', '')
-                st.markdown(f"""<div class="agent-card">
-                    <div class="icon">{agent['icon']}</div>
-                    <div class="field">{agent['field']}</div>
-                    <div class="name">{agent['name']}</div>
-                    <div class="superpower">⚡ {sp}</div>
-                </div>""", unsafe_allow_html=True)
-                checked = st.checkbox(
-                    f"{agent['name']}", value=agent["id"] in current_agents,
-                    key=f"agent_{agent['id']}", label_visibility="collapsed",
-                )
-                if checked and agent["id"] not in current_agents:
-                    current_agents.append(agent["id"])
-                elif not checked and agent["id"] in current_agents:
-                    current_agents.remove(agent["id"])
-
-        custom_agent_on = st.checkbox("✏️ 커스텀 에이전트", value="custom" in current_agents)
-        if custom_agent_on:
-            if "custom" not in current_agents:
-                current_agents.append("custom")
-            st.session_state.custom_agent_prompt = st.text_area(
-                "커스텀 프롬프트", value=st.session_state.custom_agent_prompt,
-                placeholder="예) 20대 여성 건물주 시각으로", height=60, label_visibility="collapsed",
-            )
-        elif "custom" in current_agents:
-            current_agents.remove("custom")
-
-        st.session_state.selected_agents = current_agents
-
-        if current_agents:
-            names = []
-            for aid in current_agents:
-                if aid == "custom":
-                    names.append("커스텀")
-                else:
-                    a = next((x for x in AGENTS if x["id"] == aid), None)
-                    if a:
-                        names.append(a["name"])
-            st.caption(f"선택됨: {len(names)}명 — {' + '.join(names)}")
-
-            # 선택된 에이전트 상세 정보
-            with st.expander("📋 참여 에이전트 상세", expanded=False):
-                for aid in current_agents:
-                    if aid == "custom":
-                        continue
-                    a = next((x for x in AGENTS if x["id"] == aid), None)
-                    if a:
-                        st.markdown(f"""<div style="background:#1a1a2e; border-left:3px solid #0071e3; border-radius:6px; padding:8px 12px; margin:4px 0; font-size:11px;">
-                        <b>{a['icon']} {a['name']}</b> · {a['field']}<br>
-                        <span style="color:#0071e3;">⚡ {a.get('superpower','')}</span><br>
-                        <span style="color:#999;">{a.get('bio','')}</span>
-                        </div>""", unsafe_allow_html=True)
-        else:
-            st.caption("선택됨: 0명")
-
-        st.divider()
 
         # 메트릭
         c1, c2, c3, c4 = st.columns(4)
@@ -1110,24 +927,14 @@ else:
                 topic_title = st.session_state.custom_topic.strip()
                 results = {}
                 cid = st.session_state.current_company
-                if st.session_state.get("pipeline_mode"):
-                    if st.session_state.platform_naver:
-                        st.write("🍎 파이프라인 — 네이버 생성 중...")
-                        r = pipeline.run_pipeline(topic_title, cid, "naver", status_callback=lambda msg: st.write(msg))
-                        results["naver"] = r["blog"]
-                    if st.session_state.platform_wp:
-                        st.write("🍎 파이프라인 — 워드프레스 생성 중...")
-                        r = pipeline.run_pipeline(topic_title, cid, "wordpress", status_callback=lambda msg: st.write(msg))
-                        results["wordpress"] = r["blog"]
-                else:
-                    agent_prompts = get_selected_agent_prompts()
-                    if st.session_state.platform_naver:
-                        st.write("📝 네이버 블로그 작성 중...")
-                        results["naver"] = gen.generate_naver_blog(topic_title, agent_prompts, cid)
-                    if st.session_state.platform_wp:
-                        st.write("🌐 워드프레스 작성 중...")
-                        base = results.get("naver", topic_title)
-                        results["wordpress"] = gen.generate_wordpress_blog(base, topic_title, agent_prompts, cid)
+                if st.session_state.platform_naver:
+                    st.write("🍎 파이프라인 — 네이버 생성 중...")
+                    r = pipeline.run_pipeline(topic_title, cid, "naver", status_callback=lambda msg: st.write(msg))
+                    results["naver"] = r["blog"]
+                if st.session_state.platform_wp:
+                    st.write("🍎 파이프라인 — 워드프레스 생성 중...")
+                    r = pipeline.run_pipeline(topic_title, cid, "wordpress", status_callback=lambda msg: st.write(msg))
+                    results["wordpress"] = r["blog"]
                 s.update(label="✅ 커스텀 주제 완료!", state="complete")
 
             if results.get("naver"):
@@ -1162,86 +969,6 @@ else:
     st.caption("✅ 완료" if is_done(topic["id"]) else "⬜ 미생성")
 
     # ── 에이전트 선택 (주제 상세 페이지에서도 항상 표시) ──
-    with st.expander("🤖 에이전트 선택", expanded=not is_done(topic["id"])):
-        naver_on2 = st.session_state.get("platform_naver", False)
-        wp_on2 = st.session_state.get("platform_wp", False)
-
-        hidden_ids2 = set()
-        visible_ids2 = set()
-        if naver_on2:
-            hidden_ids2.update(NAVER_HIDDEN)
-            visible_ids2.update(NAVER_AGENTS)
-        if wp_on2:
-            hidden_ids2.update(WP_HIDDEN)
-            visible_ids2.update(WP_AGENTS)
-        if not naver_on2 and not wp_on2:
-            visible_ids2 = {a["id"] for a in AGENTS}
-
-        # 에이전트는 토픽 선택 시 자동 추천됨
-
-        visible_agents2 = [a for a in AGENTS if a["id"] in visible_ids2 and a["id"] not in hidden_ids2]
-
-        cols_per_row = 6
-        num_agents = len(visible_agents2)
-        num_rows = (num_agents + cols_per_row - 1) // cols_per_row
-        rows = []
-        for _ in range(num_rows):
-            rows.extend(st.columns(cols_per_row))
-        current_agents = list(st.session_state.selected_agents)
-
-        for i, agent in enumerate(visible_agents2):
-            with rows[i]:
-                sp = agent.get('superpower', '')
-                st.markdown(f"""<div class="agent-card">
-                    <div class="icon">{agent['icon']}</div>
-                    <div class="field">{agent['field']}</div>
-                    <div class="name">{agent['name']}</div>
-                    <div class="superpower">⚡ {sp}</div>
-                </div>""", unsafe_allow_html=True)
-                checked = st.checkbox(
-                    f"{agent['name']}", value=agent["id"] in current_agents,
-                    key=f"dagent_{agent['id']}", label_visibility="collapsed",
-                )
-                if checked and agent["id"] not in current_agents:
-                    current_agents.append(agent["id"])
-                elif not checked and agent["id"] in current_agents:
-                        current_agents.remove(agent["id"])
-
-        custom_agent_on = st.checkbox("✏️ 커스텀 에이전트", value="custom" in current_agents, key="dcustom_agent")
-        if custom_agent_on:
-            if "custom" not in current_agents:
-                current_agents.append("custom")
-            st.session_state.custom_agent_prompt = st.text_area(
-                "커스텀 프롬프트", value=st.session_state.custom_agent_prompt,
-                placeholder="예) 20대 여성 건물주 시각으로", height=60, label_visibility="collapsed", key="dcustom_prompt",
-            )
-        elif "custom" in current_agents:
-            current_agents.remove("custom")
-
-        st.session_state.selected_agents = current_agents
-
-        if current_agents:
-            names = []
-            for aid in current_agents:
-                if aid == "custom":
-                    names.append("커스텀")
-                else:
-                    a = next((x for x in AGENTS if x["id"] == aid), None)
-                    if a:
-                        names.append(a["name"])
-            st.caption(f"선택됨: {len(names)}명 — {' + '.join(names)}")
-
-        st.divider()
-        pipeline_on = st.toggle(
-            "🍎 Apple 파이프라인 모드 (23-에이전트)",
-            value=st.session_state.get("pipeline_mode", PIPELINE_ENABLED),
-            key="pipeline_mode",
-            help="23개 전문 에이전트가 Phase 0~8로 실행하여 Apple 미학 수준의 블로그를 생성합니다."
-        )
-        if pipeline_on:
-            st.caption("🍎 파이프라인 모드: 23개 에이전트가 자동 실행됩니다 (에이전트 선택 무시)")
-
-
     # ── 미생성: 둘 다 없을 때 ──
     if not blog.get("final") and not blog.get("wordpress"):
         st.info("아직 생성되지 않은 주제입니다.")
@@ -1254,105 +981,32 @@ else:
         if do_naver:
             if not check_api_key():
                 st.stop()
-            if st.session_state.get("pipeline_mode"):
-                with st.status("🍎 Apple 파이프라인 — 네이버 블로그 생성 중...", expanded=True) as s:
-                    result = pipeline.run_pipeline(
-                        topic["title"], cid, "naver",
-                        status_callback=lambda msg: st.write(msg)
-                    )
-                    naver = result["blog"]
-                    footer = gen.generate_blog_footer(naver, cid)
-                    naver = naver + "\n" + footer
-                    qa_score = result.get("qa_score", 0)
-                    img_prompts = result.get("image_prompts", "")
-                    blog_data = dict(naver=naver, final=naver,
-                                     agents=["pipeline_7"], qa_score=qa_score)
-                    if img_prompts:
-                        blog_data["naver_images"] = img_prompts
-                    update_blog(topic["id"], **blog_data)
-                    s.update(label=f"✅ 파이프라인 완료! QA {qa_score}/80", state="complete")
-                if result.get("phase8"):
-                    with st.expander("📈 성과 예측 & A/B 변형"):
-                        from agents import get_pipeline_agent as _gpa
-                        for k, v in result["phase8"].items():
-                            agent_info = _gpa(k)
-                            if agent_info:
-                                st.markdown(f"**{agent_info['icon']} {agent_info['name']}**")
-                            st.markdown(v)
-                            st.divider()
-                st.rerun()
-            else:
-                with st.status("📝 네이버 블로그 생성 중...", expanded=True) as s:
-                    agent_prompts = get_selected_agent_prompts()
-                    # 에이전트 활동 상태 표시
-                    sel_names = []
-                    for aid in st.session_state.selected_agents:
-                        a = next((x for x in AGENTS if x["id"] == aid), None)
-                        if a:
-                            sel_names.append(f"{a['icon']} {a['name']}")
-                    if sel_names:
-                        st.write(f"🤝 **에이전트 협업 시작**: {' + '.join(sel_names)}")
-                        st.write("📋 각 에이전트가 자신의 전문 분야 관점을 제시하고 있습니다...")
-                        st.write("✍️ 모든 관점을 균형 있게 융합하여 하나의 글로 통합 중...")
-                    else:
-                        st.write("✍️ 블로그 글을 작성하고 있습니다...")
-                    naver = gen.generate_naver_blog(topic["title"], agent_prompts, cid)
-                    footer = gen.generate_blog_footer(naver, cid)
-                    naver = naver + "\n" + footer
-                    update_blog(topic["id"], naver=naver, final=naver, agents=st.session_state.selected_agents)
-                    s.update(label="✅ 네이버 블로그 생성 완료!", state="complete")
-                st.rerun()
-
-        if do_wp:
-            if not check_api_key():
-                st.stop()
-            if st.session_state.get("pipeline_mode"):
-                with st.status("🍎 Apple 파이프라인 — 워드프레스 생성 중...", expanded=True) as s:
-                    result = pipeline.run_pipeline(
-                        topic["title"], cid, "wordpress",
-                        status_callback=lambda msg: st.write(msg)
-                    )
-                    wp = result["blog"]
-                    footer = gen.generate_blog_footer(wp, cid)
-                    wp = wp + "\n" + footer
-                    qa_score = result.get("qa_score", 0)
-                    img_prompts = result.get("image_prompts", "")
-                    blog_data = dict(wordpress=wp, final=wp,
-                                     agents=["pipeline_7"], qa_score=qa_score)
-                    if img_prompts:
-                        blog_data["wp_images"] = img_prompts
-                    update_blog(topic["id"], **blog_data)
-                    s.update(label=f"✅ 파이프라인 완료! QA {qa_score}/80", state="complete")
-                if result.get("phase8"):
-                    with st.expander("📈 성과 예측 & A/B 변형"):
-                        from agents import get_pipeline_agent as _gpa
-                        for k, v in result["phase8"].items():
-                            agent_info = _gpa(k)
-                            if agent_info:
-                                st.markdown(f"**{agent_info['icon']} {agent_info['name']}**")
-                            st.markdown(v)
-                            st.divider()
-                st.rerun()
-            else:
-                with st.status("🌐 워드프레스 생성 중...", expanded=True) as s:
-                    agent_prompts = get_selected_agent_prompts()
-                    sel_names = []
-                    for aid in st.session_state.selected_agents:
-                        a = next((x for x in AGENTS if x["id"] == aid), None)
-                        if a:
-                            sel_names.append(f"{a['icon']} {a['name']}")
-                    if sel_names:
-                        st.write(f"🤝 **에이전트 협업 시작**: {' + '.join(sel_names)}")
-                        st.write("🔍 SEO 구조 설계 + E-E-A-T 전문성 확보 중...")
-                        st.write("📊 각 에이전트가 구글 검색 최적화 관점을 융합하고 있습니다...")
-                    else:
-                        st.write("🔍 SEO 최적화 글을 작성하고 있습니다...")
-                    wp = gen.generate_wordpress_blog(topic["title"], topic["title"], agent_prompts, cid)
-                    footer = gen.generate_blog_footer(wp, cid)
-                    wp = wp + "\n" + footer
-                    update_blog(topic["id"], wordpress=wp, final=wp, agents=st.session_state.selected_agents)
-                    s.update(label="✅ 워드프레스 생성 완료!", state="complete")
-                st.rerun()
+            with st.status("🍎 Apple 파이프라인 — 네이버 블로그 생성 중...", expanded=True) as s:
+                result = pipeline.run_pipeline(
+                    topic["title"], cid, "naver",
+                    status_callback=lambda msg: st.write(msg)
+                )
+                naver = result["blog"]
+                footer = gen.generate_blog_footer(naver, cid)
+                naver = naver + "\n" + footer
+                qa_score = result.get("qa_score", 0)
+                img_prompts = result.get("image_prompts", "")
+                blog_data = dict(naver=naver, final=naver,
+                                 agents=["pipeline_7"], qa_score=qa_score)
+                if img_prompts:
+                    blog_data["naver_images"] = img_prompts
+                update_blog(topic["id"], **blog_data)
+                s.update(label=f"✅ 파이프라인 완료! QA {qa_score}/80", state="complete")
+            if result.get("phase8"):
+                with st.expander("📈 성과 예측 & A/B 변형"):
+                    from agents import get_pipeline_agent as _gpa
+                    for k, v in result["phase8"].items():
+                        agent_info = _gpa(k)
+                        if agent_info:
+                            st.markdown(f"**{agent_info['icon']} {agent_info['name']}**")
+                        st.markdown(v)
+                        st.divider()
+            st.rerun()
         st.stop()
 
     # ── 생성 완료: 탭 ──
@@ -1368,7 +1022,6 @@ else:
                     if aid == "custom":
                         names.append("✏️커스텀")
                     else:
-                        a = next((x for x in AGENTS if x["id"] == aid), None)
                         if a:
                             names.append(f"{a['icon']}{a['name']}")
                 st.caption(f"참여 에이전트: {' · '.join(names)}")
@@ -1537,9 +1190,9 @@ else:
                             st.markdown("""<div class="collab-step"><div class="step-label">STEP 1</div>
                             <div class="step-desc">🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원 콘텐츠 회의 중...</div>
                             <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
-                            agent_prompts = get_selected_agent_prompts()
+                            agent_prompts = ""
                             def naver_regen_cb(msg):
-                                _collab_render(msg)
+                                st.write(msg)
                             img_plan = gen.generate_image_plan(blog["final"], "naver", agent_prompts, cid, status_callback=naver_regen_cb)
                             update_blog(topic["id"], naver_images=img_plan)
                             s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
@@ -1551,9 +1204,9 @@ else:
                             st.markdown("""<div class="collab-step"><div class="step-label">STEP 1 · 콘텐츠 회의</div>
                             <div class="step-desc">🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원이 소제목별 이미지를 논의합니다</div>
                             <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
-                            agent_prompts = get_selected_agent_prompts()
+                            agent_prompts = ""
                             def naver_cb(msg):
-                                _collab_render(msg)
+                                st.write(msg)
                             img_plan = gen.generate_image_plan(blog["final"], "naver", agent_prompts, cid, status_callback=naver_cb)
                             update_blog(topic["id"], naver_images=img_plan)
                             s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
@@ -1571,7 +1224,6 @@ else:
                     if aid == "custom":
                         names.append("✏️커스텀")
                     else:
-                        a = next((x for x in AGENTS if x["id"] == aid), None)
                         if a:
                             names.append(f"{a['icon']}{a['name']}")
                 st.caption(f"참여 에이전트: {' · '.join(names)}")
@@ -1741,9 +1393,9 @@ else:
                             st.markdown("""<div class="collab-step"><div class="step-label">STEP 1</div>
                             <div class="step-desc">📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원 정보 시각화 회의 중...</div>
                             <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
-                            agent_prompts = get_selected_agent_prompts()
+                            agent_prompts = ""
                             def wp_regen_cb(msg):
-                                _collab_render(msg)
+                                st.write(msg)
                             img_plan = gen.generate_image_plan(blog["wordpress"], "wordpress", agent_prompts, cid, status_callback=wp_regen_cb)
                             update_blog(topic["id"], wp_images=img_plan)
                             s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
@@ -1755,9 +1407,9 @@ else:
                             st.markdown("""<div class="collab-step"><div class="step-label">STEP 1 · 정보 시각화 회의</div>
                             <div class="step-desc">📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원이 소제목별 정보 시각물을 논의합니다</div>
                             <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
-                            agent_prompts = get_selected_agent_prompts()
+                            agent_prompts = ""
                             def wp_cb(msg):
-                                _collab_render(msg)
+                                st.write(msg)
                             img_plan = gen.generate_image_plan(blog["wordpress"], "wordpress", agent_prompts, cid, status_callback=wp_cb)
                             update_blog(topic["id"], wp_images=img_plan)
                             s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
@@ -1768,7 +1420,7 @@ else:
             if st.button("🌐 워드프레스 버전 만들기", type="primary", use_container_width=True):
                 if check_api_key():
                     with st.spinner("워드프레스 생성 중..."):
-                        agent_prompts = get_selected_agent_prompts()
+                        agent_prompts = ""
                         wp = gen.generate_wordpress_blog(blog["final"], topic["title"], agent_prompts, cid)
                         update_blog(topic["id"], wordpress=wp)
                     st.rerun()

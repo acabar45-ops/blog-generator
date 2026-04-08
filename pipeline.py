@@ -211,6 +211,5 @@ def run_pipeline(
         "image_prompts": outputs.get("image_director", ""),
         "qa_score": qa_score,
         "qa_report": outputs.get("qa_auditor", ""),
-        "phase8": {},
         "agent_outputs": outputs,
     }

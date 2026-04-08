@@ -92,7 +92,12 @@ WP_IMAGE_STYLES = """
 
 
 def _client():
-    return anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+    key = CLAUDE_API_KEY
+    if not key or len(key) < 10:
+        print(f"[generator] WARNING: API key is empty or too short: '{key[:5] if key else 'NONE'}...'")
+    else:
+        print(f"[generator] Using API key: {key[:15]}...{key[-4:]}")
+    return anthropic.Anthropic(api_key=key)
 
 
 import time as _time

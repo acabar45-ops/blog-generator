@@ -656,7 +656,7 @@ blog = get_blog(topic["id"])
 cid = st.session_state.current_company
 
 st.markdown(
-    f'#### {topic["id"]:03d}. {topic["title"]} '
+    f'#### {topic["title"]} '
     f'<span class="badge badge-{topic["category"]}">{topic["category"]}</span>',
     unsafe_allow_html=True,
 )

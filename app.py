@@ -474,12 +474,6 @@ def build_html_with_images(blog_content, image_plan, image_paths, platform="nave
     return html
 
 
-def switch_company(company_id):
-    st.session_state.current_company = company_id
-    st.session_state.blogs = load_blogs(company_id)
-    st.session_state.selected_id = None
-    st.session_state.page = "main"
-
 # ── 사이드바 ──
 with st.sidebar:
     company_data = get_current_company()
@@ -774,39 +768,6 @@ with tab_naver:
         # ── 이미지 배치 ──
         st.markdown("###### 📷 이미지 배치")
 
-        # 이미지 팀 소개
-        with st.expander("🎬 네이버 이미지 팀 소개", expanded=False):
-            tc1, tc2, tc3 = st.columns(3)
-            with tc1:
-                st.markdown("""<div class="collab-card">
-                    <div class="collab-icon">🏢</div>
-                    <div class="collab-name">현장콘텐츠 자문위원</div>
-                    <div class="collab-role">콘텐츠 기획</div>
-                    <div class="collab-career">부동산 현장 콘텐츠 제작 10년+<br>한국 건물주 시각 반응 데이터 전문가<br>상업용 건물 현장 촬영 디렉팅</div>
-                </div>""", unsafe_allow_html=True)
-            with tc2:
-                st.markdown("""<div class="collab-card">
-                    <div class="collab-icon">💡</div>
-                    <div class="collab-name">크리에이티브 자문위원</div>
-                    <div class="collab-role">크리에이티브 디렉터</div>
-                    <div class="collab-career">광고·마케팅 크리에이티브 총괄 전문가<br>한국 소비자 심리를 꿰뚫는 감각<br>40~60대 한국인 감성 마케팅 전문</div>
-                </div>""", unsafe_allow_html=True)
-            with tc3:
-                st.markdown("""<div class="collab-card">
-                    <div class="collab-icon">🎨</div>
-                    <div class="collab-name">아트디렉션 자문위원</div>
-                    <div class="collab-role">아트 디렉터</div>
-                    <div class="collab-career">미니멀하고 통일된 비주얼 톤 설계 전문가<br>전체 이미지 톤 통일 및 프롬프트 작성<br>미니멀리즘 비주얼 톤 통일의 마에스트로</div>
-                </div>""", unsafe_allow_html=True)
-            st.markdown("""<div class="collab-step">
-                <div class="step-label">STEP 1 · 콘텐츠 회의</div>
-                <div class="step-desc">🏢 현장콘텐츠 자문위원이 현장 사진을 제안 → 💡 크리에이티브 자문위원이 감성/마케팅 관점으로 보완 → 소제목별 이미지 합의</div>
-            </div>
-            <div class="collab-step">
-                <div class="step-label">STEP 2 · 비주얼 실행</div>
-                <div class="step-desc">🎨 아트디렉션 자문위원이 합의 결과를 받아 → 전체 톤 통일 → 미니멀 프롬프트 작성 → AI 이미지 생성</div>
-            </div>""", unsafe_allow_html=True)
-
         if blog.get("naver_images"):
             with st.expander("📋 이미지 배치 계획 보기", expanded=not bool(naver_img_paths)):
                 st.markdown(blog["naver_images"])
@@ -979,39 +940,6 @@ with tab_wp:
         # ── 이미지 배치 ──
         st.markdown("###### 📷 이미지 배치")
 
-        # 워드프레스 이미지 팀 소개 (네이버와 다른 팀!)
-        with st.expander("🎬 워드프레스 이미지 팀 소개", expanded=False):
-            tc1, tc2, tc3 = st.columns(3)
-            with tc1:
-                st.markdown("""<div class="collab-card">
-                    <div class="collab-icon">📊</div>
-                    <div class="collab-name">정보시각화 자문위원</div>
-                    <div class="collab-role">정보 시각화 설계</div>
-                    <div class="collab-career">데이터 시각화·인포그래픽·다이어그램 설계 전문가<br>불필요한 장식 제거, 정보 밀도 극대화<br>데이터→시각물 변환의 권위자</div>
-                </div>""", unsafe_allow_html=True)
-            with tc2:
-                st.markdown("""<div class="collab-card">
-                    <div class="collab-icon">📐</div>
-                    <div class="collab-name">미디어디자인 자문위원</div>
-                    <div class="collab-role">한국 미디어 디자인</div>
-                    <div class="collab-career">한국 미디어/디자인 산업 전문가<br>글로벌 트렌드와 한국 비즈니스 맥락의 교차점 파악<br>한국 비즈니스 정보 디자인의 핵심 인물</div>
-                </div>""", unsafe_allow_html=True)
-            with tc3:
-                st.markdown("""<div class="collab-card">
-                    <div class="collab-icon">🎨</div>
-                    <div class="collab-name">아트디렉션 자문위원</div>
-                    <div class="collab-role">미니멀 실행</div>
-                    <div class="collab-career">미니멀하고 통일된 비주얼 톤 설계 전문가<br>전체 이미지 톤 통일 및 프롬프트 작성<br>미니멀리즘 비주얼 톤 통일의 마에스트로</div>
-                </div>""", unsafe_allow_html=True)
-            st.markdown("""<div class="collab-step">
-                <div class="step-label">STEP 1 · 정보 시각화 회의</div>
-                <div class="step-desc">📊 정보시각화 자문위원이 데이터 시각화 방향을 설계 → 📐 미디어디자인 자문위원이 한국 비즈니스 맥락으로 조율 → 소제목별 정보 시각물 합의</div>
-            </div>
-            <div class="collab-step">
-                <div class="step-label">STEP 2 · 미니멀 실행</div>
-                <div class="step-desc">🎨 아트디렉션 자문위원이 합의 결과를 받아 → 미니멀 스타일 톤 통일 → 레이아웃 선택 → 미니멀 프롬프트 작성</div>
-            </div>""", unsafe_allow_html=True)
-
         if blog.get("wp_images"):
             with st.expander("📋 이미지 배치 계획 보기", expanded=not bool(wp_img_paths)):
                 st.markdown(blog["wp_images"])
@@ -1117,12 +1045,4 @@ with tab_wp:
                         s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
                     st.rerun()
     else:
-        st.info("워드프레스 버전이 아직 없습니다.")
-        st.caption("네이버 최종본 기반으로 2,500자 내외 SEO 구조로 변환됩니다.")
-        if st.button("🌐 워드프레스 버전 만들기", type="primary", use_container_width=True):
-            if check_api_key():
-                with st.spinner("워드프레스 생성 중..."):
-                    agent_prompts = ""
-                    wp = gen.generate_wordpress_blog(blog["final"], topic["title"], agent_prompts, cid)
-                    update_blog(topic["id"], wordpress=wp)
-                st.rerun()
+        st.info("이 주제에 워드프레스 글이 없습니다.")

@@ -509,7 +509,7 @@ with st.sidebar:
         with st.spinner("💡 주제발굴사가 새 주제를 찾고 있습니다..."):
             existing_titles = [t["title"] for t in TOPICS]
             existing_titles += [t["title"] for t in st.session_state.ai_topics]
-            result = pipeline.generate_topic(cid, existing_titles)
+            result = pipeline.generate_topic(st.session_state.current_company, existing_titles)
             if result:
                 new_id = max([t["id"] for t in TOPICS] + [t["id"] for t in st.session_state.ai_topics], default=0) + 1
                 result["id"] = new_id

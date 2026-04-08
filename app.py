@@ -578,18 +578,64 @@ with st.sidebar:
                             _delete_topic(t["id"])
                             st.rerun()
 
-        # ── 작성 완료 (삭제 불가, 영구 보관) ──
+        # ── 작성 완료 (영구 보관) ──
         if done_topics:
             st.divider()
             st.caption(f"✅ 작성 완료 · 영구 보관 ({len(done_topics)}개)")
             for t in done_topics:
+                blog = get_blog(t["id"])
                 platform_icon = "📝" if t.get("platform") == "naver" else "🌐"
+                qa = blog.get("qa_score", "")
+                qa_str = f" · QA {qa}/80" if qa else ""
                 is_sel = st.session_state.selected_id == t["id"]
-                label = f'✅ {platform_icon} {t["title"]}'
+
+                # 주제 버튼
+                label = f'✅ {platform_icon} {t["title"]}{qa_str}'
                 if st.button(label, key=f"done_{t['id']}", use_container_width=True,
                              type="primary" if is_sel else "secondary"):
                     st.session_state.selected_id = t["id"]
                     st.rerun()
+
+                # 이미지 수 + HTML 다운로드 (컴팩트)
+                tp = t.get("platform", "naver")
+                img_paths = get_generated_image_paths(t["id"], tp)
+                blog_text = blog.get("final") or blog.get("wordpress") or ""
+                img_key = "naver_images" if tp == "naver" else "wp_images"
+                has_imgs = bool(img_paths)
+                img_count = f"📷{len(img_paths)}" if has_imgs else ""
+
+                if blog_text:
+                    dl_col1, dl_col2 = st.columns([1, 1])
+                    with dl_col1:
+                        html_data = build_html_with_images(
+                            blog_text, blog.get(img_key, ""), img_paths,
+                            platform=tp, title=t["title"],
+                        )
+                        st.download_button(
+                            f"📥 HTML {img_count}",
+                            data=html_data.encode("utf-8"),
+                            file_name=f"{tp}_{t['id']:03d}.html",
+                            mime="text/html",
+                            use_container_width=True,
+                            key=f"dl_done_{t['id']}",
+                        )
+                    with dl_col2:
+                        if has_imgs:
+                            import zipfile, io as _io
+                            zip_buf = _io.BytesIO()
+                            with zipfile.ZipFile(zip_buf, "w") as zf:
+                                for p in img_paths:
+                                    from pathlib import Path as _P
+                                    zf.write(p, _P(p).name)
+                            zip_buf.seek(0)
+                            st.download_button(
+                                f"📥 이미지 ZIP",
+                                data=zip_buf.getvalue(),
+                                file_name=f"{tp}_{t['id']:03d}_imgs.zip",
+                                mime="application/zip",
+                                use_container_width=True,
+                                key=f"dl_imgs_{t['id']}",
+                            )
 
 
 

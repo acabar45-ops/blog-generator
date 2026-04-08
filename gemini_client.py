@@ -103,31 +103,34 @@ def generate_blog_images(image_plan: str, topic_id: int, platform: str) -> list:
     """
     results = []
 
-    # 이미지 계획에서 Gemini 프롬프트 추출
-    lines = image_plan.split("\n")
-    current_index = 0
-    current_prompt = ""
+    # 정교한 프롬프트 파서 사용
+    prompts = parse_image_prompts(image_plan)
+    print(f"[Gemini] Found {len(prompts)} prompts in image plan")
 
-    for line in lines:
-        stripped = line.strip()
+    if not prompts:
+        print(f"[Gemini] WARNING: No prompts found! Plan preview: {image_plan[:300]}")
+        return results
 
-        if stripped.startswith("📷 이미지"):
-            # 새 이미지 시작
-            try:
-                num = stripped.split("이미지")[1].strip()
-                current_index = int(num)
-            except (ValueError, IndexError):
-                current_index += 1
+    import time
+    for idx, prompt_text in enumerate(prompts, 1):
+        filename = f"topic_{topic_id:03d}_{platform}_img_{idx:02d}"
 
-        elif stripped.lower().startswith("gemini 프롬프트:") or stripped.lower().startswith("gemini프롬프트:"):
-            current_prompt = stripped.split(":", 1)[1].strip()
+        # 쿼터 초과 방지: 이미지 간 5초 대기 (첫 번째 제외)
+        if idx > 1:
+            print(f"[Gemini] Waiting 5s before next image...")
+            time.sleep(5)
 
-            if current_prompt:
-                filename = f"topic_{topic_id:03d}_{platform}_img_{current_index:02d}"
-                result = generate_image(current_prompt, filename)
-                result["index"] = current_index
-                result["prompt_used"] = current_prompt
-                results.append(result)
+        result = generate_image(prompt_text, filename)
+        result["index"] = idx
+        result["prompt_used"] = prompt_text
+        results.append(result)
+
+        # 429 에러 시 30초 대기 후 재시도
+        if not result["success"] and "429" in result.get("error", ""):
+            print(f"[Gemini] Rate limited, waiting 30s and retrying...")
+            time.sleep(30)
+            result = generate_image(prompt_text, filename)
+            results[-1] = result
 
     return results
 

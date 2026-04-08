@@ -480,15 +480,8 @@ with st.sidebar:
 
     st.divider()
 
-    # 검색 + 필터
     TOPICS = get_topics()
     TOTAL = len(TOPICS)
-
-    st.session_state.search = st.text_input(
-        "검색", value=st.session_state.search,
-        placeholder="🔍 주제 검색...", label_visibility="collapsed",
-    )
-
     dc = done_count()
     st.caption(f"완료 {dc}/{TOTAL}")
     st.divider()

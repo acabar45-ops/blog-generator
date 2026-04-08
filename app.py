@@ -528,36 +528,55 @@ with st.sidebar:
     undone_wp = [t for t in TOPICS if t.get("platform") == "wordpress" and not is_done(t["id"])]
     done_topics = [t for t in TOPICS if is_done(t["id"])]
 
+    def _delete_topic(topic_id):
+        """미작성 주제를 회사 JSON에서 삭제"""
+        from company_manager import load_company, save_company
+        company = load_company(st.session_state.current_company)
+        company["topics"] = [t for t in company.get("topics", []) if t["id"] != topic_id]
+        save_company(st.session_state.current_company, company)
+
     topic_container = st.container(height=520)
     with topic_container:
-        # ── 미작성 주제 ──
+        # ── 미작성 주제 (삭제 가능) ──
         if undone_naver:
             st.caption(f"📝 네이버 미작성 ({len(undone_naver)}개)")
             for t in undone_naver[:10]:
-                is_sel = st.session_state.selected_id == t["id"]
-                ai_badge = " 💡" if t.get("source") == "ai" else ""
-                label = f'⬜ {t["title"]}{ai_badge}'
-                if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
-                             type="primary" if is_sel else "secondary"):
-                    st.session_state.selected_id = t["id"]
-                    st.rerun()
+                col_topic, col_del = st.columns([9, 1])
+                with col_topic:
+                    is_sel = st.session_state.selected_id == t["id"]
+                    ai_badge = " 💡" if t.get("source") == "ai" else ""
+                    label = f'⬜ {t["title"]}{ai_badge}'
+                    if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
+                                 type="primary" if is_sel else "secondary"):
+                        st.session_state.selected_id = t["id"]
+                        st.rerun()
+                with col_del:
+                    if st.button("✕", key=f"del_{t['id']}", help="이 주제 삭제"):
+                        _delete_topic(t["id"])
+                        st.rerun()
 
         if undone_wp:
             st.divider()
             st.caption(f"🌐 워드프레스 미작성 ({len(undone_wp)}개)")
             for t in undone_wp[:10]:
-                is_sel = st.session_state.selected_id == t["id"]
-                ai_badge = " 💡" if t.get("source") == "ai" else ""
-                label = f'⬜ {t["title"]}{ai_badge}'
-                if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
-                             type="primary" if is_sel else "secondary"):
-                    st.session_state.selected_id = t["id"]
-                    st.rerun()
+                col_topic, col_del = st.columns([9, 1])
+                with col_topic:
+                    is_sel = st.session_state.selected_id == t["id"]
+                    ai_badge = " 💡" if t.get("source") == "ai" else ""
+                    label = f'⬜ {t["title"]}{ai_badge}'
+                    if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
+                                 type="primary" if is_sel else "secondary"):
+                        st.session_state.selected_id = t["id"]
+                        st.rerun()
+                with col_del:
+                    if st.button("✕", key=f"del_{t['id']}", help="이 주제 삭제"):
+                        _delete_topic(t["id"])
+                        st.rerun()
 
-        # ── 작성 완료 ──
+        # ── 작성 완료 (삭제 불가, 영구 보관) ──
         if done_topics:
             st.divider()
-            st.caption(f"✅ 작성 완료 ({len(done_topics)}개)")
+            st.caption(f"✅ 작성 완료 · 영구 보관 ({len(done_topics)}개)")
             for t in done_topics:
                 platform_icon = "📝" if t.get("platform") == "naver" else "🌐"
                 is_sel = st.session_state.selected_id == t["id"]

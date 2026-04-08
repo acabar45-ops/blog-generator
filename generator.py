@@ -38,12 +38,26 @@ IMAGE_COMMON_RULE = """
 4. ✅ 멀리서 흐릿하게 보이는 배경 텍스트는 허용 → "blurred distant background signs" OK
 5. ✅ 사람은 뒷모습·실루엣·먼 거리로만 등장 가능 → "seen from behind, silhouette, distant figure"
 
-━━ C. 프롬프트 작성법 ━━
+━━ C. 프롬프트 작성법 (반드시 준수) ━━
 - 영어로 작성 (Imagen은 영어 프롬프트가 가장 정확)
-- 구체적 장소 + 상황 + 시각적 디테일 포함
 - "Korean" 단어는 장소/건물에만 사용, 사람에게 사용 금지
 - 사람 묘사: "a person seen from behind", "distant silhouette of a worker" 등
 - 금지어 미포함 확인 후 프롬프트 확정
+
+━━ D. 프롬프트 구체성 필수 체크리스트 (모든 프롬프트에 반드시 포함) ━━
+프롬프트가 추상적이면 Imagen이 엉뚱한 이미지를 만듭니다. 아래 5가지를 반드시 포함하세요:
+1. 장소/배경: 구체적으로 (예: "Seoul commercial building lobby", "Korean apartment hallway")
+2. 카메라 앵글/구도: (예: "wide angle shot", "eye-level view", "overhead view", "close-up detail")
+3. 조명/시간대: (예: "soft natural daylight", "warm indoor lighting", "morning light through window")
+4. 핵심 피사체: 가장 중요한 오브젝트 1~2개를 구체적으로 (예: "clipboard with inspection checklist on wooden desk")
+5. 분위기/톤: (예: "clean and professional", "warm and inviting", "realistic documentary style")
+
+[나쁜 예] "A building management scene" → 너무 추상적, Imagen이 아무거나 만듦
+[좋은 예] "Wide angle photo of a Seoul commercial building lobby, soft natural daylight from glass entrance, a person in work uniform seen from behind inspecting fire extinguisher on wall, clean professional atmosphere, no text no signage no logos"
+
+━━ E. 프롬프트 마무리 규칙 ━━
+- 모든 프롬프트 끝에 반드시 추가: "no text, no signage, no readable signs, no logos, no letters"
+- 한국 배경 프롬프트에는 반드시 "Seoul, South Korea" 포함
 """
 
 # ── 네이버 이미지 스타일 10가지 ──
@@ -248,22 +262,22 @@ Markdown 형식 (H1=#, H2=##, H3=###)"""
 
 # ══════════════════════════════════════════════════════════════════
 #  이미지 3인 협업:
-#  1단계 콘텐츠 회의: 네이버부동산 담당자 + 박웅현 (뭘 찍을지)
-#  2단계 비주얼 실행: Jony Ive (어떻게 찍을지 + 프롬프트)
+#  1단계 콘텐츠 회의: 현장콘텐츠 자문위원 + 크리에이티브 자문위원 (뭘 찍을지)
+#  2단계 비주얼 실행: 아트디렉션 자문위원 (어떻게 찍을지 + 프롬프트)
 # ══════════════════════════════════════════════════════════════════
 
 def _step1_naver_content_meeting(blog_content: str) -> str:
-    """1단계 (네이버): 네이버 부동산 담당자 + 박웅현이 소제목별 이미지 방향 결정"""
+    """1단계 (네이버): 현장콘텐츠 자문위원 + 크리에이티브 자문위원이 소제목별 이미지 방향 결정"""
 
     prompt = f"""지금부터 두 명의 전문가가 블로그 이미지 콘텐츠 회의를 합니다.
 
-👤 네이버 부동산 콘텐츠 담당자
-- 네이버 부동산 플랫폼에서 수년간 건물/부동산 콘텐츠를 제작해온 전문가
+👤 현장콘텐츠 자문위원
+- 부동산 플랫폼에서 수년간 건물/부동산 콘텐츠를 제작해온 현장 콘텐츠 전문가
 - 한국 건물주가 어떤 사진에 반응하는지, 어떤 현장 사진이 신뢰감을 주는지 정확히 앎
 - 한국 상업용 건물, 관리실, 복도, 주차장, 옥상 등 실제 현장의 시각적 특징을 꿰뚫고 있음
 
-👤 박웅현 (TBWA Korea 크리에이티브 디렉터)
-- 한국 최고의 광고 크리에이티브 디렉터
+👤 크리에이티브 자문위원
+- 광고·마케팅 크리에이티브를 총괄하는 전문가
 - 한국 소비자 심리를 꿰뚫는 감각, "이 사진 한 장이면 클릭한다" 판단력
 - 건물 사진뿐 아니라 감성/마케팅적 사진 선택 능력 (스트레스 장면, 여유 장면, 자동화 느낌 등)
 - 40~60대 한국인이 감정적으로 반응하는 이미지를 정확히 앎
@@ -278,8 +292,8 @@ def _step1_naver_content_meeting(blog_content: str) -> str:
 
 [회의 진행]
 두 사람이 글의 소제목(##)을 하나씩 보면서 치열하게 토론합니다:
-- 부동산 담당자: 이 소제목에 어떤 현장 사진이 적합한지 제안
-- 박웅현: 마케팅/감성 관점에서 동의 또는 더 나은 대안 제시
+- 현장콘텐츠 자문위원: 이 소제목에 어떤 현장 사진이 적합한지 제안
+- 크리에이티브 자문위원: 마케팅/감성 관점에서 동의 또는 더 나은 대안 제시
 - 두 사람은 때로 의견이 충돌합니다. 한쪽이 이기기도 하고, 양보하기도 합니다.
 - 두 사람이 합의하여 각 소제목의 최종 이미지 방향 결정
 - 이미지 수 제한 없음 — 필요한 만큼 자유롭게
@@ -293,9 +307,9 @@ def _step1_naver_content_meeting(blog_content: str) -> str:
 ---
 📷 이미지 N
 소제목: (해당 소제목 원문 그대로 인용)
-부동산 담당자 의견: (이 소제목에 왜 이 장면인지, 현장 관점 1~2줄)
-박웅현 의견: (마케팅/감성 관점에서 동의, 반박, 대안 중 하나 — 이유와 함께 1~2줄)
-승패: (누구의 의견이 더 반영되었는지 — "담당자 WIN" / "박웅현 WIN" / "절충안" 중 택1 + 한 줄 이유)
+현장콘텐츠 자문위원 의견: (이 소제목에 왜 이 장면인지, 현장 관점 1~2줄)
+크리에이티브 자문위원 의견: (마케팅/감성 관점에서 동의, 반박, 대안 중 하나 — 이유와 함께 1~2줄)
+승패: (누구의 의견이 더 반영되었는지 — "현장콘텐츠 자문위원 WIN" / "크리에이티브 자문위원 WIN" / "절충안" 중 택1 + 한 줄 이유)
 최종 합의: (어떤 장면으로 갈지 구체적으로 — 장소, 상황, 분위기, 시각적 포인트)
 이미지 유형: (현장사진 / 감성사진 / 개념사진 중 택1)
 ---
@@ -306,18 +320,17 @@ def _step1_naver_content_meeting(blog_content: str) -> str:
 
 
 def _step1_wp_info_meeting(blog_content: str) -> str:
-    """1단계 (워드프레스): 에드워드 터프티 + 조수용이 소제목별 정보 시각화 방향 결정"""
+    """1단계 (워드프레스): 정보시각화 자문위원 + 미디어디자인 자문위원이 소제목별 정보 시각화 방향 결정"""
 
     prompt = f"""지금부터 두 명의 전문가가 워드프레스 블로그 이미지 콘텐츠 회의를 합니다.
 
-👤 에드워드 터프티 (Edward Tufte) — 정보 시각화의 아버지
-- 예일대 명예교수 · 「The Visual Display of Quantitative Information」저자
-- 데이터 시각화, 인포그래픽, 다이어그램 설계의 세계적 권위자
+👤 정보시각화 자문위원
+- 데이터 시각화, 인포그래픽, 다이어그램 설계의 권위자
 - "좋은 정보 디자인은 데이터를 말하게 한다" — 불필요한 장식 제거, 정보 밀도 극대화
 - 비교 표, 프로세스 다이어그램, 데이터 차트 등 정보 전달형 비주얼 설계
 
-👤 조수용 (JoH & Company 대표)
-- 매거진 B 발행인 · 카카오 공동대표 역임 · 한국 미디어/디자인 산업의 핵심 인물
+👤 미디어디자인 자문위원
+- 한국 미디어/디자인 산업에 정통한 전문가
 - 한국 시장에서 정보가 어떤 비주얼로 전달되어야 설득력이 있는지 정확히 앎
 - 글로벌 디자인 트렌드와 한국 비즈니스 맥락의 교차점을 파악
 - "정보는 아름다워야 읽힌다" — 한국 독자가 신뢰하는 정보 디자인 감각
@@ -332,8 +345,8 @@ def _step1_wp_info_meeting(blog_content: str) -> str:
 
 [회의 진행]
 두 사람이 글의 소제목(##)을 하나씩 보면서 치열하게 토론합니다:
-- 터프티: 이 소제목의 핵심 정보를 어떤 형태로 시각화하면 효과적인지 제안
-- 조수용: 한국 비즈니스 맥락에서 어떤 비주얼이 신뢰감과 전문성을 주는지 의견 추가
+- 정보시각화 자문위원: 이 소제목의 핵심 정보를 어떤 형태로 시각화하면 효과적인지 제안
+- 미디어디자인 자문위원: 한국 비즈니스 맥락에서 어떤 비주얼이 신뢰감과 전문성을 주는지 의견 추가
 - 두 사람은 때로 의견이 충돌합니다. 학술적 관점과 실무적 관점이 부딪힐 수 있습니다.
 - 두 사람이 합의하여 각 소제목의 최종 이미지 방향 결정
 - 이미지 수 제한 없음 — 필요한 만큼 자유롭게
@@ -347,9 +360,9 @@ def _step1_wp_info_meeting(blog_content: str) -> str:
 ---
 📷 이미지 N
 소제목: (해당 소제목 원문 그대로 인용)
-터프티 의견: (이 정보를 어떤 형태로 시각화하면 효과적인지, 정보 디자인 관점 1~2줄)
-조수용 의견: (한국 비즈니스/미디어 관점에서 동의, 반박, 대안 중 하나 — 이유와 함께 1~2줄)
-승패: (누구의 의견이 더 반영되었는지 — "터프티 WIN" / "조수용 WIN" / "절충안" 중 택1 + 한 줄 이유)
+정보시각화 자문위원 의견: (이 정보를 어떤 형태로 시각화하면 효과적인지, 정보 디자인 관점 1~2줄)
+미디어디자인 자문위원 의견: (한국 비즈니스/미디어 관점에서 동의, 반박, 대안 중 하나 — 이유와 함께 1~2줄)
+승패: (누구의 의견이 더 반영되었는지 — "정보시각화 자문위원 WIN" / "미디어디자인 자문위원 WIN" / "절충안" 중 택1 + 한 줄 이유)
 최종 합의: (어떤 시각물로 갈지 구체적으로 — 형태, 구조, 핵심 데이터, 비주얼 포인트)
 이미지 유형: (인포그래픽 / 다이어그램 / 데이터차트 / 비교표 / 프로세스도식 / 개념도 중 택1)
 ---
@@ -359,12 +372,12 @@ def _step1_wp_info_meeting(blog_content: str) -> str:
     return _call_claude(prompt, max_tokens=4000)
 
 
-def _step2_jony_ive_naver(blog_content: str, content_plan: str) -> str:
-    """2단계 (네이버): Jony Ive — 현장/감성 이미지를 미니멀하게 프롬프트 작성"""
+def _step2_art_direction_naver(blog_content: str, content_plan: str) -> str:
+    """2단계 (네이버): 아트디렉션 자문위원 — 현장/감성 이미지를 미니멀하게 프롬프트 작성"""
 
-    prompt = f"""당신은 Jony Ive입니다. Apple의 전설적인 디자인 총괄.
+    prompt = f"""당신은 아트디렉션 자문위원입니다. 미니멀하고 통일된 비주얼 톤을 설계하는 전문가.
 
-네이버 부동산 담당자와 박웅현이 콘텐츠 회의를 끝냈습니다.
+현장콘텐츠 자문위원과 크리에이티브 자문위원이 콘텐츠 회의를 끝냈습니다.
 각 소제목에 어떤 장면이 필요한지 합의했습니다. 당신은 이걸 받아서:
 1. 전체 비주얼 톤을 통일합니다
 2. 각 이미지의 스타일을 선택합니다
@@ -383,7 +396,7 @@ def _step2_jony_ive_naver(blog_content: str, content_plan: str) -> str:
 
 [출력 형식 — 반드시 이 형식으로]
 
-🎨 Jony Ive의 아트 디렉션
+🎨 아트디렉션 자문위원의 아트 디렉션
 - 톤 기준: (전체 이미지 톤 1~2줄)
 - 총 이미지 수: (확정)
 
@@ -393,23 +406,27 @@ def _step2_jony_ive_naver(blog_content: str, content_plan: str) -> str:
 소제목: (원문 그대로)
 스타일: (번호와 이름)
 레이아웃: (full / large / medium / side-left / side-right / pair)
-이미지 설명: (콘텐츠팀 합의 기반 + Ive가 다듬은 최종 장면)
-Gemini 프롬프트: (영문 프롬프트 — 톤 통일, 금지사항 반영, 구체적이고 생성 가능한 형태)
+이미지 설명: (콘텐츠팀 합의 기반 + 아트디렉션 자문위원이 다듬은 최종 장면)
+Gemini 프롬프트: (영문 프롬프트 — 아래 필수사항 모두 포함)
+  → 필수 포함: 장소/배경 + 카메라 앵글 + 조명 + 핵심 피사체 + 분위기
+  → 필수 포함: "Seoul, South Korea" (한국 배경일 때)
+  → 필수 끝맺음: "no text, no signage, no readable signs, no logos, no letters"
 ---
 
+⚠️ 중요: 프롬프트가 1줄짜리 추상적 문장이면 안 됩니다. 반드시 3줄 이상의 구체적 묘사로 작성하세요.
 이 형식으로 모든 이미지를 출력하세요."""
 
     return _call_claude(prompt, max_tokens=4000)
 
 
-def _step2_jony_ive_wordpress(blog_content: str, info_plan: str) -> str:
-    """2단계 (워드프레스): Jony Ive — 정보 시각화를 미니멀하게 프롬프트 작성 + 레이아웃 선택"""
+def _step2_art_direction_wordpress(blog_content: str, info_plan: str) -> str:
+    """2단계 (워드프레스): 아트디렉션 자문위원 — 정보 시각화를 미니멀하게 프롬프트 작성 + 레이아웃 선택"""
 
-    prompt = f"""당신은 Jony Ive입니다. Apple의 전설적인 디자인 총괄.
+    prompt = f"""당신은 아트디렉션 자문위원입니다. 미니멀하고 통일된 비주얼 톤을 설계하는 전문가.
 
-에드워드 터프티와 조수용이 정보 시각화 회의를 끝냈습니다.
+정보시각화 자문위원과 미디어디자인 자문위원이 정보 시각화 회의를 끝냈습니다.
 각 소제목에 어떤 형태의 정보 시각물이 필요한지 합의했습니다. 당신은 이걸 받아서:
-1. 전체 비주얼 톤을 통일합니다 — Apple 스타일의 깨끗하고 미니멀한 정보 디자인
+1. 전체 비주얼 톤을 통일합니다 — 깨끗하고 미니멀한 정보 디자인
 2. 각 이미지의 스타일을 선택합니다
 3. Gemini 이미지 생성용 영문 프롬프트를 작성합니다
 4. 워드프레스 HTML 레이아웃에 맞는 사이즈/배치를 결정합니다
@@ -433,7 +450,7 @@ def _step2_jony_ive_wordpress(blog_content: str, info_plan: str) -> str:
 
 [출력 형식 — 반드시 이 형식으로]
 
-🎨 Jony Ive의 아트 디렉션
+🎨 아트디렉션 자문위원의 아트 디렉션
 - 톤 기준: (전체 이미지 톤 1~2줄 — 정보 디자인 중심)
 - 총 이미지 수: (확정)
 
@@ -443,10 +460,14 @@ def _step2_jony_ive_wordpress(blog_content: str, info_plan: str) -> str:
 소제목: (원문 그대로)
 스타일: (번호와 이름)
 레이아웃: (full / large / medium / side-left / side-right / pair)
-이미지 설명: (정보팀 합의 기반 + Ive가 다듬은 최종 시각물)
-Gemini 프롬프트: (영문 프롬프트 — 미니멀 정보 디자인, 금지사항 반영, 구체적이고 생성 가능한 형태)
+이미지 설명: (정보팀 합의 기반 + 아트디렉션 자문위원이 다듬은 최종 시각물)
+Gemini 프롬프트: (영문 프롬프트 — 아래 필수사항 모두 포함)
+  → 필수 포함: 장소/배경 + 카메라 앵글 + 조명 + 핵심 피사체 + 분위기
+  → 필수 포함: "Seoul, South Korea" (한국 배경일 때)
+  → 필수 끝맺음: "no text, no signage, no readable signs, no logos, no letters"
 ---
 
+⚠️ 중요: 프롬프트가 1줄짜리 추상적 문장이면 안 됩니다. 반드시 3줄 이상의 구체적 묘사로 작성하세요.
 이 형식으로 모든 이미지를 출력하세요."""
 
     return _call_claude(prompt, max_tokens=4000)
@@ -460,8 +481,8 @@ def _parse_debate_summary(step1_result: str, platform: str = "naver") -> dict:
     total_images = len(image_blocks)
 
     # 의견 추출
-    opinions_a = re.findall(r"(?:부동산 담당자|터프티)\s*의견\s*[:：]\s*(.+?)(?:\n|$)", step1_result)
-    opinions_b = re.findall(r"(?:박웅현|조수용)\s*의견\s*[:：]\s*(.+?)(?:\n|$)", step1_result)
+    opinions_a = re.findall(r"(?:현장콘텐츠 자문위원|정보시각화 자문위원)\s*의견\s*[:：]\s*(.+?)(?:\n|$)", step1_result)
+    opinions_b = re.findall(r"(?:크리에이티브 자문위원|미디어디자인 자문위원)\s*의견\s*[:：]\s*(.+?)(?:\n|$)", step1_result)
     agreements = re.findall(r"최종 합의\s*[:：]\s*(.+?)(?:\n|$)", step1_result)
 
     # 승패 추출
@@ -471,19 +492,19 @@ def _parse_debate_summary(step1_result: str, platform: str = "naver") -> dict:
     draws = 0
     for v in verdicts:
         vl = v.lower()
-        if "담당자" in vl or "터프티" in vl:
+        if "현장콘텐츠 자문위원" in vl or "정보시각화 자문위원" in vl:
             if "win" in vl.lower():
                 wins_a += 1
-        elif "박웅현" in vl or "조수용" in vl:
+        elif "크리에이티브 자문위원" in vl or "미디어디자인 자문위원" in vl:
             if "win" in vl.lower():
                 wins_b += 1
         elif "절충" in vl:
             draws += 1
 
     if platform == "naver":
-        name_a, name_b = "부동산 담당자", "박웅현"
+        name_a, name_b = "현장콘텐츠 자문위원", "크리에이티브 자문위원"
     else:
-        name_a, name_b = "터프티", "조수용"
+        name_a, name_b = "정보시각화 자문위원", "미디어디자인 자문위원"
 
     return {
         "total": total_images,
@@ -510,12 +531,12 @@ def generate_image_plan(blog_content: str, platform: str, agent_prompts: str = "
         # 팀원 입장
         cb("━━━ 🎬 STEP 1: 콘텐츠 회의실 ━━━")
         cb("")
-        cb("🏢 **네이버 부동산 담당자** 입장")
-        cb("  └ 네이버 부동산 플랫폼 콘텐츠 10년+ · 한국 건물주 반응 데이터 전문가")
+        cb("🏢 **현장콘텐츠 자문위원** 입장")
+        cb("  └ 부동산 현장 콘텐츠 10년+ · 한국 건물주 반응 데이터 전문가")
         cb("  └ _\"한국 건물주가 진짜 클릭하는 사진이 뭔지, 저보다 잘 아는 사람 없습니다\"_")
         cb("")
-        cb("💡 **박웅현** 입장")
-        cb("  └ TBWA Korea 크리에이티브 대표 · 「여덟 단어」「책은 도끼다」 저자")
+        cb("💡 **크리에이티브 자문위원** 입장")
+        cb("  └ 광고·마케팅 크리에이티브 총괄 전문가")
         cb("  └ _\"좋은 사진은 설명이 필요 없어요. 한 장으로 마음을 잡아야 합니다\"_")
         cb("")
         cb("🔥 두 사람이 소제목을 하나씩 펼치며 토론을 시작합니다...")
@@ -530,7 +551,7 @@ def generate_image_plan(blog_content: str, platform: str, agent_prompts: str = "
         cb("")
 
         # 승패 스코어보드
-        cb(f"🏆 **스코어보드**: 🏢 담당자 {debate['wins_a']}승 vs 💡 박웅현 {debate['wins_b']}승 / 절충 {debate['draws']}건")
+        cb(f"🏆 **스코어보드**: 🏢 현장콘텐츠 자문위원 {debate['wins_a']}승 vs 💡 크리에이티브 자문위원 {debate['wins_b']}승 / 절충 {debate['draws']}건")
         cb("")
 
         # 토론 하이라이트 재현 — 승패 포함
@@ -543,47 +564,47 @@ def generate_image_plan(blog_content: str, platform: str, agent_prompts: str = "
             ]
             for i, (oa, ob) in enumerate(zip(debate["opinions_a"], debate["opinions_b"])):
                 ra, rb = reactions[i] if i < len(reactions) else ("", "")
-                cb(f"  🏢 담당자 {ra}: \"{oa[:60]}\"")
-                cb(f"  💡 박웅현 {rb}: \"{ob[:60]}\"")
+                cb(f"  🏢 현장콘텐츠 자문위원 {ra}: \"{oa[:60]}\"")
+                cb(f"  💡 크리에이티브 자문위원 {rb}: \"{ob[:60]}\"")
                 if i < len(debate["verdicts"]):
                     v = debate["verdicts"][i]
-                    if "담당자" in v and "WIN" in v.upper():
-                        cb(f"  🥊 → **담당자 WIN!** {v[v.find('—')+1:].strip() if '—' in v else ''}")
-                    elif "박웅현" in v and "WIN" in v.upper():
-                        cb(f"  🥊 → **박웅현 WIN!** {v[v.find('—')+1:].strip() if '—' in v else ''}")
+                    if "현장콘텐츠 자문위원" in v and "WIN" in v.upper():
+                        cb(f"  🥊 → **현장콘텐츠 자문위원 WIN!** {v[v.find('—')+1:].strip() if '—' in v else ''}")
+                    elif "크리에이티브 자문위원" in v and "WIN" in v.upper():
+                        cb(f"  🥊 → **크리에이티브 자문위원 WIN!** {v[v.find('—')+1:].strip() if '—' in v else ''}")
                     else:
                         cb(f"  🤝 → **절충안** 채택 — 서로 양보하여 합의")
                 if i < len(debate["agreements"]):
                     cb(f"  📌 합의: {debate['agreements'][i][:55]}...")
                 cb("")
 
-        # Jony Ive 등장
+        # 아트디렉션 자문위원 등장
         cb("━━━ 🎬 STEP 2: 아트 디렉션 ━━━")
         cb("")
-        cb("🎨 **Jony Ive** 입장")
-        cb("  └ 前 Apple CDO · iMac·iPod·iPhone·iPad 디자인 총괄 · 미니멀리즘의 거장")
+        cb("🎨 **아트디렉션 자문위원** 입장")
+        cb("  └ 미니멀하고 통일된 비주얼 톤을 설계하는 전문가")
         cb("  └ _\"Simplicity is the ultimate sophistication.\"_")
         cb("")
         cb(f"📨 콘텐츠팀이 합의한 {debate['total']}장의 이미지 브리프를 전달받았습니다")
-        cb("🎨 Ive: _\"불필요한 건 전부 덜어내겠습니다. 하나의 톤으로 통일합니다.\"_")
+        cb("🎨 아트디렉션 자문위원: _\"불필요한 건 전부 덜어내겠습니다. 하나의 톤으로 통일합니다.\"_")
         cb("⏳ 비주얼 톤 통일 + 프롬프트 작성 중...")
         cb("")
 
-        final_plan = _step2_jony_ive_naver(blog_content, content_plan)
+        final_plan = _step2_art_direction_naver(blog_content, content_plan)
 
-        cb("✅ Jony Ive의 아트 디렉션 완료!")
+        cb("✅ 아트디렉션 자문위원의 아트 디렉션 완료!")
 
     else:
         # ── 워드프레스: 정보 시각화 + 한국 미디어 디자인 팀 ──
 
         cb("━━━ 🎬 STEP 1: 정보 시각화 회의실 ━━━")
         cb("")
-        cb("📊 **에드워드 터프티** 입장")
-        cb("  └ 예일대 명예교수 · 「Visual Display of Quantitative Information」 저자")
+        cb("📊 **정보시각화 자문위원** 입장")
+        cb("  └ 데이터 시각화·인포그래픽·다이어그램 설계 전문가")
         cb("  └ _\"모든 데이터에는 이야기가 있습니다. 장식이 아니라 정보를 보여주세요.\"_")
         cb("")
-        cb("📐 **조수용** 입장")
-        cb("  └ JoH & Company 대표 · 매거진 B 발행인 · 前 카카오 공동대표")
+        cb("📐 **미디어디자인 자문위원** 입장")
+        cb("  └ 한국 미디어/디자인 산업 전문가")
         cb("  └ _\"한국 시장에서 정보는 신뢰의 옷을 입어야 합니다\"_")
         cb("")
         cb("🔍 두 사람이 소제목의 핵심 데이터를 분석하며 시각화 방향을 논의합니다...")
@@ -596,7 +617,7 @@ def generate_image_plan(blog_content: str, platform: str, agent_prompts: str = "
         cb("")
 
         # 승패 스코어보드
-        cb(f"🏆 **스코어보드**: 📊 터프티 {debate['wins_a']}승 vs 📐 조수용 {debate['wins_b']}승 / 절충 {debate['draws']}건")
+        cb(f"🏆 **스코어보드**: 📊 정보시각화 자문위원 {debate['wins_a']}승 vs 📐 미디어디자인 자문위원 {debate['wins_b']}승 / 절충 {debate['draws']}건")
         cb("")
 
         if debate["opinions_a"] and debate["opinions_b"]:
@@ -608,14 +629,14 @@ def generate_image_plan(blog_content: str, platform: str, agent_prompts: str = "
             ]
             for i, (oa, ob) in enumerate(zip(debate["opinions_a"], debate["opinions_b"])):
                 ra, rb = reactions[i] if i < len(reactions) else ("", "")
-                cb(f"  📊 터프티 {ra}: \"{oa[:60]}\"")
-                cb(f"  📐 조수용 {rb}: \"{ob[:60]}\"")
+                cb(f"  📊 정보시각화 자문위원 {ra}: \"{oa[:60]}\"")
+                cb(f"  📐 미디어디자인 자문위원 {rb}: \"{ob[:60]}\"")
                 if i < len(debate["verdicts"]):
                     v = debate["verdicts"][i]
-                    if "터프티" in v and "WIN" in v.upper():
-                        cb(f"  🥊 → **터프티 WIN!** {v[v.find('—')+1:].strip() if '—' in v else ''}")
-                    elif "조수용" in v and "WIN" in v.upper():
-                        cb(f"  🥊 → **조수용 WIN!** {v[v.find('—')+1:].strip() if '—' in v else ''}")
+                    if "정보시각화 자문위원" in v and "WIN" in v.upper():
+                        cb(f"  🥊 → **정보시각화 자문위원 WIN!** {v[v.find('—')+1:].strip() if '—' in v else ''}")
+                    elif "미디어디자인 자문위원" in v and "WIN" in v.upper():
+                        cb(f"  🥊 → **미디어디자인 자문위원 WIN!** {v[v.find('—')+1:].strip() if '—' in v else ''}")
                     else:
                         cb(f"  🤝 → **절충안** 채택 — 학술과 실무의 균형")
                 if i < len(debate["agreements"]):
@@ -624,18 +645,18 @@ def generate_image_plan(blog_content: str, platform: str, agent_prompts: str = "
 
         cb("━━━ 🎬 STEP 2: 미니멀 실행 ━━━")
         cb("")
-        cb("🎨 **Jony Ive** 입장")
-        cb("  └ 前 Apple CDO · iMac·iPod·iPhone·iPad 디자인 총괄 · 미니멀리즘의 거장")
-        cb("  └ _\"Less, but better. 정보 디자인도 Apple처럼.\"_")
+        cb("🎨 **아트디렉션 자문위원** 입장")
+        cb("  └ 미니멀하고 통일된 비주얼 톤을 설계하는 전문가")
+        cb("  └ _\"Less, but better. 정보 디자인도 미니멀하게.\"_")
         cb("")
         cb(f"📨 정보팀이 설계한 {debate['total']}개의 시각물 브리프를 전달받았습니다")
-        cb("🎨 Ive: _\"데이터를 아름답게 만들겠습니다. 미니멀하게.\"_")
+        cb("🎨 아트디렉션 자문위원: _\"데이터를 아름답게 만들겠습니다. 미니멀하게.\"_")
         cb("⏳ 비주얼 톤 통일 + 레이아웃 선택 + 프롬프트 작성 중...")
         cb("")
 
-        final_plan = _step2_jony_ive_wordpress(blog_content, info_plan)
+        final_plan = _step2_art_direction_wordpress(blog_content, info_plan)
 
-        cb("✅ Jony Ive의 아트 디렉션 완료!")
+        cb("✅ 아트디렉션 자문위원의 아트 디렉션 완료!")
 
     return final_plan
 

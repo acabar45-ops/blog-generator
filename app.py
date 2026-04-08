@@ -9,37 +9,30 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── 비밀번호 보호 ──
-def _check_password():
-    """비밀번호가 설정되어 있으면 로그인 화면을 표시"""
-    try:
-        app_pw = st.secrets["APP_PASSWORD"]
-    except (KeyError, FileNotFoundError):
-        app_pw = ""
-    if not app_pw:
-        return True
-    if st.session_state.get("authenticated"):
+# ── 회사 선택 ──
+def _select_company():
+    """두 회사 중 하나를 선택하는 화면"""
+    if st.session_state.get("current_company"):
         return True
 
-    # 로그인 화면을 가운데 정렬
     _, col, _ = st.columns([1, 2, 1])
     with col:
-        st.title("🔒 블로그 자동화 로그인")
-        pwd = st.text_input("비밀번호를 입력하세요", type="password", key="login_pwd")
-        if st.button("로그인", use_container_width=True):
-            if pwd == app_pw:
-                st.session_state["authenticated"] = True
+        st.markdown("<div style='text-align:center; padding: 60px 0 30px 0;'><h1>🏢 블로그 자동화</h1></div>", unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("🏢 하우스맨", use_container_width=True, key="btn_houseman"):
+                st.session_state["current_company"] = "houseman"
                 st.rerun()
-            else:
-                st.error("비밀번호가 틀렸습니다.")
+        with c2:
+            if st.button("🧹 청소매뉴얼", use_container_width=True, key="btn_cleanmanual"):
+                st.session_state["current_company"] = "cleanmanual"
+                st.rerun()
     return False
 
-if not _check_password():
+if not _select_company():
     st.stop()
 
-from config import APP_PASSWORD
-
-from agents import AGENTS, CUSTOM_AGENT
+from agents import AGENTS, CUSTOM_AGENT, NAVER_HIDDEN, WP_HIDDEN, NAVER_AGENTS, WP_AGENTS, recommend_agents
 from storage import load_blogs, save_blog
 from company_manager import (
     list_companies, load_company, save_company, delete_company,
@@ -210,8 +203,20 @@ def check_api_key():
     return True
 
 def get_selected_agent_prompts():
+    """선택된 에이전트 + 플랫폼 필수 에이전트의 프롬프트를 합쳐서 반환"""
+    # 숨겨진 필수 에이전트 자동 추가
+    all_ids = list(st.session_state.selected_agents)
+    if st.session_state.get("platform_naver"):
+        for hid in NAVER_HIDDEN:
+            if hid not in all_ids:
+                all_ids.insert(0, hid)
+    if st.session_state.get("platform_wp"):
+        for hid in WP_HIDDEN:
+            if hid not in all_ids:
+                all_ids.insert(0, hid)
+
     prompts = []
-    for agent_id in st.session_state.selected_agents:
+    for agent_id in all_ids:
         if agent_id == "custom":
             if st.session_state.custom_agent_prompt.strip():
                 prompts.append(f"[커스텀 에이전트]\n{st.session_state.custom_agent_prompt}")
@@ -869,17 +874,40 @@ else:
 
         # ── STEP 2: 에이전트 선택 ──
         st.markdown("##### 📌 STEP 2. 에이전트 선택 (복수)")
-        st.caption("선택된 전문가들이 처음부터 함께 블로그를 씁니다")
+        naver_on = st.session_state.get("platform_naver", False)
+        wp_on = st.session_state.get("platform_wp", False)
+
+        # 플랫폼별 숨겨진 필수 에이전트 결정
+        hidden_ids = set()
+        visible_agent_ids = set()
+        if naver_on:
+            hidden_ids.update(NAVER_HIDDEN)
+            visible_agent_ids.update(NAVER_AGENTS)
+        if wp_on:
+            hidden_ids.update(WP_HIDDEN)
+            visible_agent_ids.update(WP_AGENTS)
+        # 둘 다 안 선택이면 전체 표시
+        if not naver_on and not wp_on:
+            visible_agent_ids = {a["id"] for a in AGENTS}
+
+        # 숨겨진 에이전트 안내
+        hidden_names = [a["name"] for a in AGENTS if a["id"] in hidden_ids]
+        if hidden_names:
+            st.caption(f"✅ {', '.join(hidden_names)} — 자동 참여 (필수)")
+        st.caption("아래에서 추가 자문위원을 선택하세요")
+
+        # UI에 표시할 에이전트 필터링 (숨겨진 것 제외)
+        visible_agents = [a for a in AGENTS if a["id"] in visible_agent_ids and a["id"] not in hidden_ids]
 
         cols_per_row = 6
-        num_agents = len(AGENTS)
+        num_agents = len(visible_agents)
         num_rows = (num_agents + cols_per_row - 1) // cols_per_row
         rows = []
         for _ in range(num_rows):
             rows.extend(st.columns(cols_per_row))
         current_agents = list(st.session_state.selected_agents)
 
-        for i, agent in enumerate(AGENTS):
+        for i, agent in enumerate(visible_agents):
             with rows[i]:
                 sp = agent.get('superpower', '')
                 st.markdown(f"""<div class="agent-card">
@@ -998,16 +1026,44 @@ else:
 
     # ── 에이전트 선택 (주제 상세 페이지에서도 항상 표시) ──
     with st.expander("🤖 에이전트 선택", expanded=not is_done(topic["id"])):
-        st.caption("선택된 전문가들이 처음부터 함께 블로그를 씁니다")
+        naver_on2 = st.session_state.get("platform_naver", False)
+        wp_on2 = st.session_state.get("platform_wp", False)
+
+        hidden_ids2 = set()
+        visible_ids2 = set()
+        if naver_on2:
+            hidden_ids2.update(NAVER_HIDDEN)
+            visible_ids2.update(NAVER_AGENTS)
+        if wp_on2:
+            hidden_ids2.update(WP_HIDDEN)
+            visible_ids2.update(WP_AGENTS)
+        if not naver_on2 and not wp_on2:
+            visible_ids2 = {a["id"] for a in AGENTS}
+
+        hidden_names2 = [a["name"] for a in AGENTS if a["id"] in hidden_ids2]
+        if hidden_names2:
+            st.caption(f"✅ {', '.join(hidden_names2)} — 자동 참여 (필수)")
+
+        # AI 추천 버튼
+        rec_col1, rec_col2 = st.columns([3, 1])
+        with rec_col2:
+            if st.button("🤖 AI 추천", key="btn_recommend_detail"):
+                platform = "naver" if naver_on2 else "wordpress"
+                recs = recommend_agents(topic["title"], platform, CLAUDE_API_KEY)
+                st.session_state.selected_agents = recs
+                st.rerun()
+
+        visible_agents2 = [a for a in AGENTS if a["id"] in visible_ids2 and a["id"] not in hidden_ids2]
+
         cols_per_row = 6
-        num_agents = len(AGENTS)
+        num_agents = len(visible_agents2)
         num_rows = (num_agents + cols_per_row - 1) // cols_per_row
         rows = []
         for _ in range(num_rows):
             rows.extend(st.columns(cols_per_row))
         current_agents = list(st.session_state.selected_agents)
 
-        for i, agent in enumerate(AGENTS):
+        for i, agent in enumerate(visible_agents2):
             with rows[i]:
                 sp = agent.get('superpower', '')
                 st.markdown(f"""<div class="agent-card">
@@ -1023,7 +1079,7 @@ else:
                 if checked and agent["id"] not in current_agents:
                     current_agents.append(agent["id"])
                 elif not checked and agent["id"] in current_agents:
-                    current_agents.remove(agent["id"])
+                        current_agents.remove(agent["id"])
 
         custom_agent_on = st.checkbox("✏️ 커스텀 에이전트", value="custom" in current_agents, key="dcustom_agent")
         if custom_agent_on:
@@ -1175,31 +1231,31 @@ else:
                 with tc1:
                     st.markdown("""<div class="collab-card">
                         <div class="collab-icon">🏢</div>
-                        <div class="collab-name">네이버 부동산 담당자</div>
+                        <div class="collab-name">현장콘텐츠 자문위원</div>
                         <div class="collab-role">콘텐츠 기획</div>
-                        <div class="collab-career">네이버 부동산 플랫폼 콘텐츠 제작 10년+<br>한국 건물주 시각 반응 데이터 전문가<br>상업용 건물 현장 촬영 디렉팅</div>
+                        <div class="collab-career">부동산 현장 콘텐츠 제작 10년+<br>한국 건물주 시각 반응 데이터 전문가<br>상업용 건물 현장 촬영 디렉팅</div>
                     </div>""", unsafe_allow_html=True)
                 with tc2:
                     st.markdown("""<div class="collab-card">
                         <div class="collab-icon">💡</div>
-                        <div class="collab-name">박웅현</div>
+                        <div class="collab-name">크리에이티브 자문위원</div>
                         <div class="collab-role">크리에이티브 디렉터</div>
-                        <div class="collab-career">TBWA Korea 크리에이티브 대표<br>「여덟 단어」「책은 도끼다」 저자<br>40~60대 한국인 감성 마케팅의 1인자</div>
+                        <div class="collab-career">광고·마케팅 크리에이티브 총괄 전문가<br>한국 소비자 심리를 꿰뚫는 감각<br>40~60대 한국인 감성 마케팅 전문</div>
                     </div>""", unsafe_allow_html=True)
                 with tc3:
                     st.markdown("""<div class="collab-card">
                         <div class="collab-icon">🎨</div>
-                        <div class="collab-name">Jony Ive</div>
+                        <div class="collab-name">아트디렉션 자문위원</div>
                         <div class="collab-role">아트 디렉터</div>
-                        <div class="collab-career">前 Apple 최고 디자인 책임자 (CDO)<br>iMac · iPod · iPhone · iPad 디자인 총괄<br>미니멀리즘 비주얼 톤 통일의 마에스트로</div>
+                        <div class="collab-career">미니멀하고 통일된 비주얼 톤 설계 전문가<br>전체 이미지 톤 통일 및 프롬프트 작성<br>미니멀리즘 비주얼 톤 통일의 마에스트로</div>
                     </div>""", unsafe_allow_html=True)
                 st.markdown("""<div class="collab-step">
                     <div class="step-label">STEP 1 · 콘텐츠 회의</div>
-                    <div class="step-desc">🏢 부동산 담당자가 현장 사진을 제안 → 💡 박웅현이 감성/마케팅 관점으로 보완 → 소제목별 이미지 합의</div>
+                    <div class="step-desc">🏢 현장콘텐츠 자문위원이 현장 사진을 제안 → 💡 크리에이티브 자문위원이 감성/마케팅 관점으로 보완 → 소제목별 이미지 합의</div>
                 </div>
                 <div class="collab-step">
                     <div class="step-label">STEP 2 · 비주얼 실행</div>
-                    <div class="step-desc">🎨 Jony Ive가 합의 결과를 받아 → 전체 톤 통일 → 미니멀 프롬프트 작성 → Imagen 3 생성</div>
+                    <div class="step-desc">🎨 아트디렉션 자문위원이 합의 결과를 받아 → 전체 톤 통일 → 미니멀 프롬프트 작성 → Imagen 3 생성</div>
                 </div>""", unsafe_allow_html=True)
 
             if blog.get("naver_images"):
@@ -1247,8 +1303,8 @@ else:
                             st.warning("Google 인증이 필요합니다. 사이드바에서 인증해주세요.")
                         else:
                             with st.status("🖼️ AI가 이미지를 생성하고 있습니다...", expanded=True) as img_s:
-                                st.write("🏢 부동산 담당자 + 💡 박웅현의 콘텐츠 합의 기반...")
-                                st.write("🎨 Jony Ive의 프롬프트로 이미지 생성 중...")
+                                st.write("🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원의 콘텐츠 합의 기반...")
+                                st.write("🎨 아트디렉션 자문위원의 프롬프트로 이미지 생성 중...")
                                 results = imagen_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
                                 img_s.update(label="✅ 이미지 생성 완료!", state="complete")
                             ok = sum(1 for r in results if r["success"])
@@ -1265,7 +1321,7 @@ else:
                     if check_api_key():
                         with st.status("🎬 네이버 이미지 팀 재협업...", expanded=True) as s:
                             st.markdown("""<div class="collab-step"><div class="step-label">STEP 1</div>
-                            <div class="step-desc">🏢 부동산 담당자 + 💡 박웅현 콘텐츠 회의 중...</div>
+                            <div class="step-desc">🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원 콘텐츠 회의 중...</div>
                             <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
                             agent_prompts = get_selected_agent_prompts()
                             def naver_regen_cb(msg):
@@ -1279,7 +1335,7 @@ else:
                     if check_api_key():
                         with st.status("🎬 네이버 이미지 팀 협업 시작...", expanded=True) as s:
                             st.markdown("""<div class="collab-step"><div class="step-label">STEP 1 · 콘텐츠 회의</div>
-                            <div class="step-desc">🏢 네이버 부동산 담당자 + 💡 박웅현이 소제목별 이미지를 논의합니다</div>
+                            <div class="step-desc">🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원이 소제목별 이미지를 논의합니다</div>
                             <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
                             agent_prompts = get_selected_agent_prompts()
                             def naver_cb(msg):
@@ -1361,31 +1417,31 @@ else:
                 with tc1:
                     st.markdown("""<div class="collab-card">
                         <div class="collab-icon">📊</div>
-                        <div class="collab-name">Edward Tufte</div>
+                        <div class="collab-name">정보시각화 자문위원</div>
                         <div class="collab-role">정보 시각화 설계</div>
-                        <div class="collab-career">예일대 명예교수 · 정보 시각화의 아버지<br>「Visual Display of Quantitative Info」 저자<br>데이터→시각물 변환의 세계적 권위자</div>
+                        <div class="collab-career">데이터 시각화·인포그래픽·다이어그램 설계 전문가<br>불필요한 장식 제거, 정보 밀도 극대화<br>데이터→시각물 변환의 권위자</div>
                     </div>""", unsafe_allow_html=True)
                 with tc2:
                     st.markdown("""<div class="collab-card">
                         <div class="collab-icon">📐</div>
-                        <div class="collab-name">조수용</div>
+                        <div class="collab-name">미디어디자인 자문위원</div>
                         <div class="collab-role">한국 미디어 디자인</div>
-                        <div class="collab-career">JoH & Company 대표 · 매거진 B 발행인<br>前 카카오 공동대표<br>한국 비즈니스 정보 디자인의 핵심 인물</div>
+                        <div class="collab-career">한국 미디어/디자인 산업 전문가<br>글로벌 트렌드와 한국 비즈니스 맥락의 교차점 파악<br>한국 비즈니스 정보 디자인의 핵심 인물</div>
                     </div>""", unsafe_allow_html=True)
                 with tc3:
                     st.markdown("""<div class="collab-card">
                         <div class="collab-icon">🎨</div>
-                        <div class="collab-name">Jony Ive</div>
+                        <div class="collab-name">아트디렉션 자문위원</div>
                         <div class="collab-role">미니멀 실행</div>
-                        <div class="collab-career">前 Apple 최고 디자인 책임자 (CDO)<br>iMac · iPod · iPhone · iPad 디자인 총괄<br>미니멀리즘 비주얼 톤 통일의 마에스트로</div>
+                        <div class="collab-career">미니멀하고 통일된 비주얼 톤 설계 전문가<br>전체 이미지 톤 통일 및 프롬프트 작성<br>미니멀리즘 비주얼 톤 통일의 마에스트로</div>
                     </div>""", unsafe_allow_html=True)
                 st.markdown("""<div class="collab-step">
                     <div class="step-label">STEP 1 · 정보 시각화 회의</div>
-                    <div class="step-desc">📊 터프티가 데이터 시각화 방향을 설계 → 📐 조수용이 한국 비즈니스 맥락으로 조율 → 소제목별 정보 시각물 합의</div>
+                    <div class="step-desc">📊 정보시각화 자문위원이 데이터 시각화 방향을 설계 → 📐 미디어디자인 자문위원이 한국 비즈니스 맥락으로 조율 → 소제목별 정보 시각물 합의</div>
                 </div>
                 <div class="collab-step">
                     <div class="step-label">STEP 2 · 미니멀 실행</div>
-                    <div class="step-desc">🎨 Jony Ive가 합의 결과를 받아 → Apple 스타일 톤 통일 → 레이아웃 선택 → 미니멀 프롬프트 작성</div>
+                    <div class="step-desc">🎨 아트디렉션 자문위원이 합의 결과를 받아 → 미니멀 스타일 톤 통일 → 레이아웃 선택 → 미니멀 프롬프트 작성</div>
                 </div>""", unsafe_allow_html=True)
 
             if blog.get("wp_images"):
@@ -1433,8 +1489,8 @@ else:
                             st.warning("Google 인증이 필요합니다.")
                         else:
                             with st.status("🖼️ AI가 이미지를 생성하고 있습니다...", expanded=True) as img_s:
-                                st.write("📊 터프티 + 📐 조수용의 정보 시각화 합의 기반...")
-                                st.write("🎨 Jony Ive의 미니멀 프롬프트로 이미지 생성 중...")
+                                st.write("📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원의 정보 시각화 합의 기반...")
+                                st.write("🎨 아트디렉션 자문위원의 미니멀 프롬프트로 이미지 생성 중...")
                                 results = imagen_client.generate_blog_images(blog["wp_images"], topic["id"], "wordpress")
                                 img_s.update(label="✅ 이미지 생성 완료!", state="complete")
                             ok = sum(1 for r in results if r["success"])
@@ -1451,7 +1507,7 @@ else:
                     if check_api_key():
                         with st.status("🎬 워드프레스 이미지 팀 재협업...", expanded=True) as s:
                             st.markdown("""<div class="collab-step"><div class="step-label">STEP 1</div>
-                            <div class="step-desc">📊 터프티 + 📐 조수용 정보 시각화 회의 중...</div>
+                            <div class="step-desc">📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원 정보 시각화 회의 중...</div>
                             <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
                             agent_prompts = get_selected_agent_prompts()
                             def wp_regen_cb(msg):
@@ -1465,7 +1521,7 @@ else:
                     if check_api_key():
                         with st.status("🎬 워드프레스 이미지 팀 협업 시작...", expanded=True) as s:
                             st.markdown("""<div class="collab-step"><div class="step-label">STEP 1 · 정보 시각화 회의</div>
-                            <div class="step-desc">📊 에드워드 터프티 + 📐 조수용이 소제목별 정보 시각물을 논의합니다</div>
+                            <div class="step-desc">📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원이 소제목별 정보 시각물을 논의합니다</div>
                             <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
                             agent_prompts = get_selected_agent_prompts()
                             def wp_cb(msg):

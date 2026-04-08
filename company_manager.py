@@ -24,20 +24,27 @@ DEFAULT_HOUSEMAN_DATA = {
     "founded": "2011",
     "team_size": "8명",
     "managed_count": "50개 이상",
-    "region": "서울 강남·성수·마포·관악",
+    "region": "서울 강남·역삼·논현·대치·성수·마포·구로·관악·강동·광진",
     "clients": "포르쉐코리아, 이브릿지(보건복지부 산하), 미트박스(코스닥 상장)",
     "strengths": "15년 현장 경험 + 자체 개발 건물관리 자동화 시스템",
     "industry": "건물관리 위탁",
-    "seo_keywords": "서울 건물관리 위탁, 상가 건물 관리업체, 건물주 자동화 관리",
+    "representative": "박종호",
+    "phone": "1544-4150",
+    "phone_direct": "010-5560-8245",
+    "address": "강남구 학동로8길 9, 5층",
+    "seo_keywords": "서울 건물관리 위탁, 상가 건물 관리업체, 건물주 자동화 관리, 강남 건물관리, 중소형 빌딩 관리",
     "description": (
         "전화 한 통 없이도 건물이 스스로 관리됩니다. "
         "하우스맨은 2011년부터 서울 주요 상권의 상업용 건물을 위탁 관리해온 전문 기업입니다. "
         "15년간 축적한 현장 경험과 자체 개발한 건물관리 자동화 시스템을 결합하여, "
         "건물주가 직접 전화받고 현장 나가는 일 없이도 건물이 체계적으로 관리되는 환경을 만들어 드립니다. "
         "포르쉐코리아, 이브릿지(보건복지부 산하기관), 미트박스(코스닥 상장기업) 등 "
-        "50개 이상의 건물을 8명의 전문 팀이 관리하며, "
+        "50개 이상의 건물을 8명의 전문 팀이 관리합니다. "
+        "임대관리, 수금 자동화, 민원 대응, 시설 관리, 단기임대 운영, 원상복구, "
+        "비상주 관리사무소, 기업 시설관리 외주까지 건물 운영에 필요한 모든 업무를 원스톱으로 제공합니다. "
         "수금 자동화, 단기계약 자동화, QR 민원 시스템, 건물주 포털, 카카오 알림톡 자동화 등 "
-        "5대 자동화 시스템으로 관리 효율을 극대화합니다."
+        "5대 자동화 시스템으로 관리 효율을 극대화합니다. "
+        "하우스맨은 마케팅이나 광고 없이, 지인 소개와 실제 운영 성과만으로 고객을 만나며 성장해왔습니다."
     ),
     "topics": [
         # ① 건물관리 실무 팁 (30개)
@@ -148,6 +155,43 @@ DEFAULT_HOUSEMAN_DATA = {
         {"id": 99,  "title": "건물관리 자동화의 미래, 다음 단계는?",                "category": "자동화"},
         {"id": 100, "title": "하우스맨이 꿈꾸는 완전 자동화 건물관리",              "category": "자동화"},
     ],
+}
+
+
+# ── 기본 회사 (청소매뉴얼) 데이터 ──
+DEFAULT_CLEANMANUAL_ID = "cleanmanual"
+
+DEFAULT_CLEANMANUAL_DATA = {
+    "id": "cleanmanual",
+    "name": "청소매뉴얼",
+    "website": "blog.naver.com/naoyada",
+    "founded": "",
+    "team_size": "",
+    "managed_count": "80여 개 건물",
+    "region": "서울 강남·성수·논현·역삼·삼성·청담·신사",
+    "clients": "다수 부동산 및 빌딩관리업체, 국내 유명 프랜차이즈 본사",
+    "strengths": "눈에 보이지 않는 곳까지 관리, 전용 약품 사용, 천연/친환경 세제 기본, 물기 완전 제거 마무리",
+    "industry": "건물 전문 청소업체",
+    "representative": "김용수",
+    "phone": "1811-1555",
+    "phone_direct": "010-3202-1081",
+    "address": "강남구 논현동 124-25 1층 101호",
+    "seo_keywords": "강남 정기청소, 건물 계단청소, 공용화장실 청소, 배수구 청소, 입주청소, 준공청소, 건물청소 전문업체",
+    "description": (
+        "체계화된 청소의 기준, 청소매뉴얼입니다. "
+        "청소매뉴얼은 강남구 기반으로 다수의 부동산 및 빌딩관리업체와 협약을 맺고 "
+        "건물을 정기 관리하는 전문 청소업체입니다. "
+        "현재 강남 일대 80여 개 건물을 정기 관리하고 있으며, "
+        "대부분의 건물은 첫 계약 이후 재계약으로 이어지고 있습니다. "
+        "일반 세제로는 제거되지 않는 고착 오염에 전용 약품을 사용하고, "
+        "배수구 분해 청소, 변기 힌지 오염 제거, 점자블록 이물질 제거 등 "
+        "다른 업체가 놓치는 보이지 않는 곳까지 관리합니다. "
+        "모든 작업은 마른걸레로 물기 완전 제거까지 마무리하며, "
+        "화학약품 사용을 최소화하고 천연/친환경 세제를 기본으로 사용합니다. "
+        "정기청소, 입주청소, 퇴실청소, 준공청소, 배수구청소, 외부미관청소, "
+        "마루광택, 곰팡이제거, 고압세척 등 건물 청소 전반을 제공합니다."
+    ),
+    "topics": [],  # 앱에서 Claude API로 자동 생성 예정
 }
 
 
@@ -315,12 +359,14 @@ def generate_topics_for_company(company_data: dict, api_key: str) -> list[dict]:
 # ================================================================
 
 def initialize_default_company() -> None:
-    """회사 프로필이 하나도 없으면 기본 하우스맨 프로필을 생성한다."""
+    """기본 회사 프로필(하우스맨, 청소매뉴얼)이 없으면 생성한다."""
     _ensure_companies_dir()
-    companies = list_companies()
-    if len(companies) == 0:
+    if not _company_path(DEFAULT_COMPANY_ID).exists():
         save_company(DEFAULT_COMPANY_ID, DEFAULT_HOUSEMAN_DATA.copy())
         print(f"[company_manager] 기본 회사 '{DEFAULT_COMPANY_ID}' 프로필을 생성했습니다.")
+    if not _company_path(DEFAULT_CLEANMANUAL_ID).exists():
+        save_company(DEFAULT_CLEANMANUAL_ID, DEFAULT_CLEANMANUAL_DATA.copy())
+        print(f"[company_manager] 기본 회사 '{DEFAULT_CLEANMANUAL_ID}' 프로필을 생성했습니다.")
 
 
 def get_or_create_default_company() -> dict:

@@ -14,8 +14,7 @@ VERTEX_PROJECT_ID = st.secrets["VERTEX_PROJECT_ID"] if "VERTEX_PROJECT_ID" in st
 VERTEX_LOCATION = st.secrets["VERTEX_LOCATION"] if "VERTEX_LOCATION" in st.secrets else "us-central1"
 CLIENT_SECRET_FILE = "client_secret.json"
 
-# ── 앱 비밀번호 ──
-APP_PASSWORD = st.secrets["APP_PASSWORD"] if "APP_PASSWORD" in st.secrets else ""
+# ── 앱 비밀번호 (제거됨 — 회사 선택 방식으로 전환) ──
 
 # ── Gemini (gemini_client.py 용) ──
 GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"] if "GEMINI_API_KEY" in st.secrets else ""

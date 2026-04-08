@@ -920,27 +920,20 @@ else:
 
         # ── 커스텀 주제 ──
         st.markdown("##### ✏️ 커스텀 주제")
-        custom_col1, custom_col2 = st.columns([5, 1])
+        custom_col1, custom_col2, custom_col3 = st.columns([4, 1.5, 1])
         with custom_col1:
             st.session_state.custom_topic = st.text_input(
                 "커스텀", placeholder="원하는 주제를 직접 입력하세요", label_visibility="collapsed",
             )
         with custom_col2:
+            custom_platform = st.selectbox(
+                "플랫폼", ["📝 네이버", "🌐 워드프레스"],
+                label_visibility="collapsed",
+            )
+        with custom_col3:
             custom_go = st.button("작성", type="primary", use_container_width=True)
 
-        st.divider()
-
-        # ── STEP 1: 플랫폼 선택 ──
-        st.markdown("##### 📌 STEP 1. 플랫폼 선택")
-        p1, p2 = st.columns(2)
-        with p1:
-            st.session_state.platform_naver = st.checkbox(
-                "📝 네이버 블로그", value=st.session_state.platform_naver,
-                help="2,000~2,200자 / 현장감·체류시간·공감")
-        with p2:
-            st.session_state.platform_wp = st.checkbox(
-                "🌐 워드프레스", value=st.session_state.platform_wp,
-                help="2,500자 내외 / 구글SEO·E-E-A-T·FAQ")
+        st.caption("💡 일반 주제는 플랫폼이 자동 지정되어 있습니다. 커스텀 주제만 플랫폼을 선택하세요.")
 
         st.divider()
 
@@ -960,21 +953,15 @@ else:
         if custom_go and st.session_state.custom_topic.strip():
             if not check_api_key():
                 st.stop()
-            if not st.session_state.platform_naver and not st.session_state.platform_wp:
-                st.warning("플랫폼을 최소 1개 선택해주세요.")
-                st.stop()
-            with st.status("커스텀 주제 작성 중...", expanded=True) as s:
+            sel_platform = "naver" if "네이버" in custom_platform else "wordpress"
+            sel_label = "네이버" if sel_platform == "naver" else "워드프레스"
+            with st.status(f"커스텀 주제 작성 중 ({sel_label})...", expanded=True) as s:
                 topic_title = st.session_state.custom_topic.strip()
                 results = {}
                 cid = st.session_state.current_company
-                if st.session_state.platform_naver:
-                    st.write("🍎 파이프라인 — 네이버 생성 중...")
-                    r = pipeline.run_pipeline(topic_title, cid, "naver", status_callback=lambda msg: st.write(msg))
-                    results["naver"] = r["blog"]
-                if st.session_state.platform_wp:
-                    st.write("🍎 파이프라인 — 워드프레스 생성 중...")
-                    r = pipeline.run_pipeline(topic_title, cid, "wordpress", status_callback=lambda msg: st.write(msg))
-                    results["wordpress"] = r["blog"]
+                st.write(f"🍎 파이프라인 — {sel_label} 생성 중...")
+                r = pipeline.run_pipeline(topic_title, cid, sel_platform, status_callback=lambda msg: st.write(msg))
+                results[sel_platform] = r["blog"]
                 s.update(label="✅ 커스텀 주제 완료!", state="complete")
 
             if results.get("naver"):

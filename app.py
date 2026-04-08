@@ -33,10 +33,7 @@ if not _select_company():
     st.stop()
 
 from storage import load_blogs, save_blog
-from company_manager import (
-    list_companies, load_company, save_company, delete_company,
-    get_or_create_default_company, generate_topics_for_company,
-)
+from company_manager import load_company, get_or_create_default_company
 import generator as gen
 import pipeline
 import gemini_client
@@ -81,41 +78,12 @@ section[data-testid="stSidebar"] .stRadio label { font-size: 11px !important; pa
 .advisor-box { background: #1a1a2e; border-left: 3px solid #0071e3; border-radius: 6px;
                padding: 12px 14px; margin: 8px 0; color: #f0f0f0; font-size: 12px;
                white-space: pre-wrap; line-height: 1.5; }
-.agent-card { background: #1e1e2e; border: 1px solid #333; border-radius: 8px;
-              padding: 8px 10px; text-align: center; min-height: 100px;
-              display: flex; flex-direction: column; justify-content: center; transition: all 0.2s; }
-.agent-card:hover { border-color: #0071e3; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(230,126,34,0.15); }
-.agent-card .field { font-size: 10px; color: #aaa; margin-bottom: 2px; }
-.agent-card .name { font-size: 12px; font-weight: bold; color: #fff; }
-.agent-card .icon { font-size: 16px; margin-bottom: 2px; }
-.agent-card .superpower { font-size: 9px; color: #0071e3; margin-top: 3px; line-height: 1.3; }
-/* 이미지 팀 협업 애니메이션 */
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-@keyframes slideRight { from { width: 0; } to { width: 100%; } }
-.collab-card { background: #1a1a2e; border: 1px solid #333; border-radius: 10px;
-               padding: 14px; text-align: center; animation: fadeInUp 0.5s ease-out; }
-.collab-card .collab-icon { font-size: 28px; margin-bottom: 4px; }
-.collab-card .collab-name { font-size: 13px; font-weight: bold; color: #fff; }
-.collab-card .collab-role { font-size: 10px; color: #aaa; margin-top: 2px; }
-.collab-card .collab-career { font-size: 9px; color: #888; margin-top: 4px; line-height: 1.3; }
-.collab-arrow { text-align: center; font-size: 24px; color: #0071e3; animation: pulse 1.5s infinite; padding-top: 20px; }
-.collab-step { background: linear-gradient(135deg, #1a1a2e, #2a1a3e); border: 1px solid #444;
-               border-radius: 8px; padding: 10px 14px; margin: 6px 0; }
-.collab-step .step-label { font-size: 10px; color: #0071e3; font-weight: bold; letter-spacing: 1px; }
-.collab-step .step-desc { font-size: 11px; color: #ccc; margin-top: 3px; }
-.collab-progress { height: 3px; background: #333; border-radius: 2px; margin-top: 6px; overflow: hidden; }
-.collab-progress .bar { height: 100%; background: linear-gradient(90deg, #0071e3, #34aadc); animation: slideRight 2s ease-out; }
-.img-placeholder { background: #1a1a2e; border: 1px dashed #555; border-radius: 6px;
-                   padding: 10px 12px; margin: 8px 0; font-size: 11px; color: #ccc; line-height: 1.4; }
 .status-done { color: #27AE60; font-weight: bold; font-size: 11px; }
 .status-wait { color: #888; font-size: 11px; }
 .stDataFrame { font-size: 11px !important; }
 .stTabs [data-baseweb="tab"] { font-size: 12px !important; padding: 6px 12px !important; }
 [data-testid="stMetric"] label { font-size: 11px !important; }
 [data-testid="stMetric"] [data-testid="stMetricValue"] { font-size: 18px !important; }
-.platform-box { background: #1e1e2e; border: 1px solid #444; border-radius: 8px;
-                padding: 10px 14px; margin: 4px 0; font-size: 12px; }
 /* 이미지 풀스크린 뷰어 — 닫기 버튼 강화 */
 [data-testid="StyledFullScreenButton"] {
     opacity: 1 !important; visibility: visible !important;
@@ -147,12 +115,7 @@ defaults = {
     "page": "main",
     "selected_id": None,
     "search": "",
-    "category_filter": "전체",
-    "bulk_running": False,
     "api_key": CLAUDE_API_KEY,
-    "platform_naver": True,
-    "platform_wp": False,
-    "custom_agent_prompt": "",
     "custom_topic": "",
     "current_company": "houseman",
 }
@@ -184,15 +147,6 @@ def is_done(topic_id):
 
 def done_count():
     return sum(1 for t in get_topics() if is_done(t["id"]))
-
-def filtered_topics():
-    result = get_topics()
-    if st.session_state.category_filter != "전체":
-        result = [t for t in result if t["category"] == st.session_state.category_filter]
-    if st.session_state.search.strip():
-        kw = st.session_state.search.strip().lower()
-        result = [t for t in result if kw in t["title"].lower()]
-    return result
 
 def update_blog(topic_id, **kwargs):
     current = get_blog(topic_id).copy()
@@ -532,32 +486,6 @@ with st.sidebar:
     st.markdown(f"#### 🏢 {company_data.get('name', '블로그')}")
     st.caption(company_data.get("website", ""))
 
-    # 회사 전환
-    with st.expander("⚙️ 회사 설정", expanded=False):
-        companies = list_companies()
-
-        # 회사 선택
-        if companies:
-            selected_company = st.selectbox(
-                "회사 선택", companies,
-                index=companies.index(st.session_state.current_company) if st.session_state.current_company in companies else 0,
-                label_visibility="collapsed",
-            )
-            if selected_company != st.session_state.current_company:
-                switch_company(selected_company)
-                st.rerun()
-
-        # 회사 관리 버튼
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("➕ 새 회사", use_container_width=True):
-                st.session_state.page = "company_new"
-                st.rerun()
-        with c2:
-            if st.button("✏️ 편집", use_container_width=True):
-                st.session_state.page = "company_edit"
-                st.rerun()
-
     # API 키
     with st.expander("🔑 API 키", expanded=not bool(st.session_state.api_key.strip())):
         api_input = st.text_input(
@@ -644,804 +572,557 @@ with st.sidebar:
     if TOTAL > 0:
         st.progress(dc / TOTAL, text=f"진행: {dc}/{TOTAL}")
 
-    col_a, col_b = st.columns(2)
-    with col_a:
-        if st.session_state.bulk_running:
-            if st.button("⏹ 중지", use_container_width=True):
-                st.session_state.bulk_running = False
-                st.rerun()
-        else:
-            if st.button("🔄 전체생성", use_container_width=True, type="primary"):
-                if check_api_key():
-                    st.session_state.bulk_running = True
-                    st.rerun()
-    with col_b:
-        if st.button("📊 전체보기", use_container_width=True):
-            st.session_state.page = "all_view"
-            st.rerun()
 
-# ═══════════════════════════════════════════════
-#  회사 신규 등록 페이지
-# ═══════════════════════════════════════════════
-if st.session_state.page == "company_new":
-    st.markdown("#### ➕ 새 회사 등록")
-
-    col_l, col_r = st.columns(2)
-    with col_l:
-        new_id = st.text_input("회사 ID (영문, 공백 없이)", placeholder="예: mycompany")
-        new_name = st.text_input("회사명", placeholder="예: 마이컴퍼니")
-        new_website = st.text_input("웹사이트", placeholder="예: mycompany.co.kr")
-    with col_r:
-        new_industry = st.text_input("업종/분야", placeholder="예: 인테리어, 법률, 마케팅")
-        new_region = st.text_input("서비스 지역", placeholder="예: 서울 전체")
-        new_seo = st.text_input("SEO 키워드 (3개)", placeholder="예: 서울 인테리어, 사무실 리모델링")
-    new_founded = st.text_input("설립연도", placeholder="예: 2020")
-
-    st.divider()
-    st.markdown("##### 📝 회사 상세 정보")
-    st.caption("회사에 대한 모든 정보를 자유롭게 써주세요. 많이 쓸수록 AI가 더 좋은 글을 씁니다.")
-    new_desc = st.text_area(
-        "회사 소개",
-        placeholder="예시) 자유롭게 작성:\n\n우리 회사는 2015년에 설립된 인테리어 전문 업체입니다.\n팀 규모는 20명이고 서울 강남 지역을 중심으로 활동합니다.\n주요 고객사는 OO, OO이며...\n핵심 강점은...\n최근 성과는...",
-        height=250,
-        label_visibility="collapsed",
-    )
-
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("💾 저장 + 주제 자동 생성", type="primary", use_container_width=True):
-            if not new_id.strip() or not new_name.strip():
-                st.warning("회사 ID와 회사명은 필수입니다.")
-            elif not check_api_key():
-                st.stop()
-            else:
-                company_data = {
-                    "id": new_id.strip(),
-                    "name": new_name.strip(),
-                    "website": new_website.strip(),
-                    "founded": new_founded.strip(),
-                    "region": new_region.strip(),
-                    "industry": new_industry.strip(),
-                    "seo_keywords": new_seo.strip(),
-                    "description": new_desc.strip(),
-                    "topics": [],
-                }
-                with st.status("회사 등록 + 주제 100개 생성 중...", expanded=True) as s:
-                    st.write("Claude가 회사에 맞는 100가지 주제를 생성합니다...")
-                    try:
-                        topics = generate_topics_for_company(company_data, st.session_state.api_key)
-                        company_data["topics"] = topics
-                        st.write(f"✅ {len(topics)}개 주제 생성 완료!")
-                    except Exception as e:
-                        st.error(f"주제 생성 실패: {e}")
-                        company_data["topics"] = []
-                    save_company(new_id.strip(), company_data)
-                    s.update(label="✅ 회사 등록 완료!", state="complete")
-                switch_company(new_id.strip())
-                st.rerun()
-    with c2:
-        if st.button("← 취소", use_container_width=True):
-            st.session_state.page = "main"
-            st.rerun()
-    st.stop()
-
-# ═══════════════════════════════════════════════
-#  회사 편집 페이지
-# ═══════════════════════════════════════════════
-elif st.session_state.page == "company_edit":
-    cd = get_current_company()
-    st.markdown(f"#### ✏️ 회사 편집: {cd.get('name', '')}")
-
-    # 기본 정보 (간단히)
-    col_l, col_r = st.columns(2)
-    with col_l:
-        ed_name = st.text_input("회사명", value=cd.get("name", ""))
-        ed_website = st.text_input("웹사이트", value=cd.get("website", ""))
-        ed_industry = st.text_input("업종/분야", value=cd.get("industry", ""))
-    with col_r:
-        ed_region = st.text_input("서비스 지역", value=cd.get("region", ""))
-        ed_seo = st.text_input("SEO 키워드", value=cd.get("seo_keywords", ""))
-        ed_founded = st.text_input("설립연도", value=cd.get("founded", ""))
-
-    st.divider()
-
-    # 회사 정보 자연어 영역
-    st.markdown("##### 📝 회사 상세 정보")
-    st.caption("자유롭게 작성하세요. 여기에 쓴 내용이 블로그 생성 시 AI에게 전달됩니다. 내용을 계속 추가하면 AI가 더 정확한 글을 씁니다.")
-
-    # 기존 description + extra_info 합쳐서 보여주기
-    existing_desc = cd.get("description", "")
-    existing_extra = cd.get("extra_info", "")
-    if existing_extra and existing_extra not in existing_desc:
-        combined_text = existing_desc + "\n\n" + existing_extra if existing_desc else existing_extra
-    else:
-        combined_text = existing_desc
-
-    ed_desc = st.text_area(
-        "회사 소개 (자연어)",
-        value=combined_text,
-        height=300,
-        placeholder="""예시) 자유롭게 쭉 써주세요:
-
-하우스맨은 2011년부터 서울 주요 상권의 상업용 건물을 위탁 관리해온 전문 기업입니다.
-15년간 축적한 현장 경험과 자체 개발한 건물관리 자동화 시스템을 결합하여...
-
-100개 이상의 건물을 관리하고 있습니다.
-주요 고객사는 포르쉐코리아, 이브릿지, 미트박스 등입니다.
-
-핵심 강점:
-- 수금 자동화 시스템
-- QR 민원 접수
-- 카카오 알림톡 자동화
-- 건물주 전용 포털
-
-최근에 새로운 서비스를 추가했습니다...
-경쟁사 대비 차별점은...
-고객 후기나 성과 데이터도 여기에 추가하세요.""",
-        label_visibility="collapsed",
-    )
-
-    st.divider()
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        if st.button("💾 저장", type="primary", use_container_width=True):
-            cd.update({
-                "name": ed_name, "website": ed_website, "founded": ed_founded,
-                "region": ed_region, "industry": ed_industry,
-                "seo_keywords": ed_seo, "description": ed_desc,
-            })
-            save_company(st.session_state.current_company, cd)
-            st.success("저장 완료!")
-            st.rerun()
-    with c2:
-        if st.button("🔄 주제 재생성", use_container_width=True):
-            if not check_api_key():
-                st.stop()
-            with st.status("주제 100개 재생성 중...", expanded=True):
-                try:
-                    topics = generate_topics_for_company(cd, st.session_state.api_key)
-                    cd["topics"] = topics
-                    save_company(st.session_state.current_company, cd)
-                    st.success(f"{len(topics)}개 주제 재생성 완료!")
-                except Exception as e:
-                    st.error(f"실패: {e}")
-            st.rerun()
-    with c3:
-        if st.button("← 돌아가기", use_container_width=True):
-            st.session_state.page = "main"
-            st.rerun()
-
-    # 현재 주제 목록
-    st.divider()
-    with st.expander(f"📋 현재 주제 ({len(cd.get('topics', []))}개)", expanded=False):
-        for t in cd.get("topics", []):
-            st.caption(f"{t['id']:03d}. [{t['category']}] {t['title']}")
-
-    # 회사 삭제
-    if st.session_state.current_company != "houseman":
-        st.divider()
-        if st.button("🗑️ 이 회사 삭제", use_container_width=True):
-            delete_company(st.session_state.current_company)
-            switch_company("houseman")
-            st.rerun()
-
-    st.stop()
-
-# ═══════════════════════════════════════════════
-#  전체 만들기 자동 처리
-# ═══════════════════════════════════════════════
-if st.session_state.bulk_running:
-    TOPICS = get_topics()
-    next_topic = next((t for t in TOPICS if not is_done(t["id"])), None)
-    if next_topic:
-        with st.status(f"⏳ [{next_topic['id']:03d}] {next_topic['title']}", expanded=True) as s:
-            cid = st.session_state.current_company
-            st.write("🍎 Apple 파이프라인 실행 중...")
-            result = pipeline.run_pipeline(
-                next_topic["title"], cid, "naver",
-                status_callback=lambda msg: st.write(msg)
-            )
-            naver = result["blog"]
-            footer = gen.generate_blog_footer(naver, cid)
-            naver = naver + "\n" + footer
-            img_prompts = result.get("image_prompts", "")
-            blog_data = dict(naver=naver, final=naver, wordpress="",
-                             agents=["pipeline_7"],
-                             qa_score=result.get("qa_score", 0))
-            if img_prompts:
-                blog_data["naver_images"] = img_prompts
-            update_blog(next_topic["id"], **blog_data)
-            s.update(label=f"✅ {next_topic['title']}", state="complete")
-        st.rerun()
-    else:
-        st.session_state.bulk_running = False
-        st.success(f"🎉 전체 {len(TOPICS)}개 블로그 생성 완료!")
-        st.rerun()
-
-# ═══════════════════════════════════════════════
-#  전체 보기 페이지
-# ═══════════════════════════════════════════════
-elif st.session_state.page == "all_view":
-    TOPICS = get_topics()
-    TOTAL = len(TOPICS)
-    st.markdown("#### 📊 전체 블로그 현황")
-    st.caption(f"완료 {done_count()}개 / 미완료 {TOTAL - done_count()}개")
-
-    filter_view = st.radio("", ["전체", "완료만", "미완료만"], horizontal=True, label_visibility="collapsed")
-
-    for t in TOPICS:
-        done = is_done(t["id"])
-        if filter_view == "완료만" and not done:
-            continue
-        if filter_view == "미완료만" and done:
-            continue
-        c1, c2, c3, c4, c5 = st.columns([0.5, 6, 1, 1.5, 1.5])
-        c1.caption(f"{t['id']:03d}")
-        c2.caption(t["title"])
-        picon = "📝" if t.get("platform") == "naver" else "🌐"
-        c3.caption(picon)
-        c4.markdown(f'<span class="badge badge-{t["category"]}">{t["category"]}</span>', unsafe_allow_html=True)
-        if done:
-            if c5.button("보기", key=f"v_{t['id']}", use_container_width=True):
-                st.session_state.selected_id = t["id"]
-                st.session_state.page = "main"
-                st.rerun()
-        else:
-            if c5.button("생성", key=f"g_{t['id']}", use_container_width=True):
-                st.session_state.selected_id = t["id"]
-                st.session_state.page = "main"
-                st.rerun()
-
-    st.divider()
-    if st.button("← 돌아가기"):
-        st.session_state.page = "main"
-        st.rerun()
 
 # ═══════════════════════════════════════════════
 #  메인 페이지
 # ═══════════════════════════════════════════════
+TOPICS = get_topics()
+TOTAL = len(TOPICS)
+
+if st.session_state.selected_id is None:
+    company_data = get_current_company()
+    st.markdown(f"#### 🏢 {company_data.get('name', '')} 블로그 자동화")
+
+    # ── 커스텀 주제 ──
+    st.markdown("##### ✏️ 커스텀 주제")
+    custom_col1, custom_col2, custom_col3 = st.columns([4, 1.5, 1])
+    with custom_col1:
+        st.session_state.custom_topic = st.text_input(
+            "커스텀", placeholder="원하는 주제를 직접 입력하세요", label_visibility="collapsed",
+        )
+    with custom_col2:
+        custom_platform = st.selectbox(
+            "플랫폼", ["📝 네이버", "🌐 워드프레스"],
+            label_visibility="collapsed",
+        )
+    with custom_col3:
+        custom_go = st.button("작성", type="primary", use_container_width=True)
+
+    st.caption("💡 일반 주제는 플랫폼이 자동 지정되어 있습니다. 커스텀 주제만 플랫폼을 선택하세요.")
+
+    st.divider()
+
+
+    # 메트릭
+    naver_topics = [t for t in TOPICS if t.get("platform") == "naver"]
+    wp_topics = [t for t in TOPICS if t.get("platform") == "wordpress"]
+    naver_done = sum(1 for t in naver_topics if is_done(t["id"]))
+    wp_done = sum(1 for t in wp_topics if is_done(t["id"]))
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("📝 네이버", f"{naver_done}/{len(naver_topics)}")
+    c2.metric("🌐 워드프레스", f"{wp_done}/{len(wp_topics)}")
+    c3.metric("전체 완료", f"{done_count()}/{TOTAL}")
+    c4.metric("완료율", f"{int(done_count() / TOTAL * 100) if TOTAL > 0 else 0}%")
+
+    # 커스텀 주제 실행
+    if custom_go and st.session_state.custom_topic.strip():
+        if not check_api_key():
+            st.stop()
+        sel_platform = "naver" if "네이버" in custom_platform else "wordpress"
+        sel_label = "네이버" if sel_platform == "naver" else "워드프레스"
+        with st.status(f"커스텀 주제 작성 중 ({sel_label})...", expanded=True) as s:
+            topic_title = st.session_state.custom_topic.strip()
+            results = {}
+            cid = st.session_state.current_company
+            st.write(f"🍎 파이프라인 — {sel_label} 생성 중...")
+            r = pipeline.run_pipeline(topic_title, cid, sel_platform, status_callback=lambda msg: st.write(msg))
+            results[sel_platform] = r["blog"]
+            s.update(label="✅ 커스텀 주제 완료!", state="complete")
+
+        if results.get("naver"):
+            st.markdown("##### 📝 네이버 블로그")
+            render_blog_preview(results["naver"])
+            with st.expander("📋 복사"):
+                st.code(results["naver"], language=None)
+        if results.get("wordpress"):
+            st.markdown("##### 🌐 워드프레스")
+            render_blog_preview(results["wordpress"])
+            with st.expander("📋 복사"):
+                st.code(results["wordpress"], language=None)
+
+    st.stop()
+
+# ═══════════════════════════════════════════════
+#  주제 선택됨
+# ═══════════════════════════════════════════════
+topic = next((t for t in TOPICS if t["id"] == st.session_state.selected_id), None)
+if not topic:
+    st.error("주제를 찾을 수 없습니다.")
+    st.stop()
+
+blog = get_blog(topic["id"])
+cid = st.session_state.current_company
+
+st.markdown(
+    f'#### {topic["id"]:03d}. {topic["title"]} '
+    f'<span class="badge badge-{topic["category"]}">{topic["category"]}</span>',
+    unsafe_allow_html=True,
+)
+st.caption("✅ 완료" if is_done(topic["id"]) else "⬜ 미생성")
+
+# ── 글 생성/재생성 ──
+topic_platform = topic.get("platform", "naver")
+platform_label = "📝 네이버 블로그" if topic_platform == "naver" else "🌐 워드프레스"
+is_already_done = blog.get("final") or blog.get("wordpress")
+
+if not is_already_done:
+    st.info(f"아직 생성되지 않은 주제입니다. ({platform_label} 전용)")
+    gen_label = f"✨ {platform_label} 생성"
 else:
-    TOPICS = get_topics()
-    TOTAL = len(TOPICS)
+    gen_label = f"🔄 {platform_label} 재생성"
 
-    if st.session_state.selected_id is None:
-        company_data = get_current_company()
-        st.markdown(f"#### 🏢 {company_data.get('name', '')} 블로그 자동화")
+do_gen = st.button(gen_label, type="primary", use_container_width=True, key=f"gen_blog_{topic['id']}")
 
-        # ── 커스텀 주제 ──
-        st.markdown("##### ✏️ 커스텀 주제")
-        custom_col1, custom_col2, custom_col3 = st.columns([4, 1.5, 1])
-        with custom_col1:
-            st.session_state.custom_topic = st.text_input(
-                "커스텀", placeholder="원하는 주제를 직접 입력하세요", label_visibility="collapsed",
-            )
-        with custom_col2:
-            custom_platform = st.selectbox(
-                "플랫폼", ["📝 네이버", "🌐 워드프레스"],
-                label_visibility="collapsed",
-            )
-        with custom_col3:
-            custom_go = st.button("작성", type="primary", use_container_width=True)
+if do_gen:
+    if not check_api_key():
+        st.stop()
+    with st.status(f"🍎 파이프라인 — {platform_label} {'재' if is_already_done else ''}생성 중...", expanded=True) as s:
+        result = pipeline.run_pipeline(
+            topic["title"], cid, topic_platform,
+            status_callback=lambda msg: st.write(msg)
+        )
+        blog_text = result["blog"]
+        footer = gen.generate_blog_footer(blog_text, cid)
+        blog_text = blog_text + "\n" + footer
+        qa_score = result.get("qa_score", 0)
+        img_prompts = result.get("image_prompts", "")
+        if topic_platform == "naver":
+            blog_data = dict(naver=blog_text, final=blog_text,
+                             agents=["pipeline_7"], qa_score=qa_score)
+            if img_prompts:
+                blog_data["naver_images"] = img_prompts
+        else:
+            blog_data = dict(wordpress=blog_text,
+                             agents=["pipeline_7"], qa_score=qa_score)
+            if img_prompts:
+                blog_data["wp_images"] = img_prompts
+        update_blog(topic["id"], **blog_data)
+        s.update(label=f"✅ 파이프라인 완료! QA {qa_score}/80", state="complete")
+    blog = get_blog(topic["id"])
+    is_already_done = True
 
-        st.caption("💡 일반 주제는 플랫폼이 자동 지정되어 있습니다. 커스텀 주제만 플랫폼을 선택하세요.")
+if not is_already_done:
+    st.stop()
+
+# ── 생성 완료: 탭 ──
+tab_naver, tab_wp = st.tabs(["📝 네이버", "🌐 워드프레스"])
+
+# ── 네이버 탭 ──
+with tab_naver:
+    if blog.get("final"):
+        used_agents = blog.get("agents", [])
+        if used_agents:
+            names = []
+            for aid in used_agents:
+                if aid == "custom":
+                    names.append("✏️커스텀")
+                elif aid == "pipeline_7":
+                    names.append("🍎파이프라인")
+                else:
+                    a = next((ag for ag in AGENTS if ag["id"] == aid), None)
+                    if a:
+                        names.append(f"{a['icon']}{a['name']}")
+            st.caption(f"참여 에이전트: {' · '.join(names)}")
+
+        # 이미지가 있으면 글 사이사이에 이미지 삽입, 없으면 글만
+        naver_img_paths = get_generated_image_paths(topic["id"], "naver")
+        if naver_img_paths and blog.get("naver_images"):
+            st.markdown("###### 📖 글 + 이미지 미리보기")
+            render_blog_with_images(blog["final"], blog["naver_images"], naver_img_paths)
+        else:
+            render_blog_preview(blog["final"])
+
+        with st.expander("📋 텍스트만 복사"):
+            st.code(blog["final"], language=None)
+
+        # ── HTML 다운로드 버튼 ──
+        naver_dl_paths = get_generated_image_paths(topic["id"], "naver")
+        html_data = build_html_with_images(
+            blog["final"],
+            blog.get("naver_images", ""),
+            naver_dl_paths,
+            platform="naver",
+            title=topic["title"],
+        )
+        st.download_button(
+            label="📥 HTML 다운로드 (이미지 포함)",
+            data=html_data.encode("utf-8"),
+            file_name=f"naver_{topic['id']:03d}_{topic['title'][:20]}.html",
+            mime="text/html",
+            use_container_width=True,
+            key="dl_naver_html",
+        )
 
         st.divider()
 
+        # ── 방향성 전환 (코멘트 수정) — 이미지보다 위 ──
+        st.markdown("###### 🔀 방향성 전환")
+        comment = st.text_area("방향성 전환", placeholder="글의 방향, 톤, 강조점 등 수정 요청을 입력하세요",
+                               height=60, label_visibility="collapsed", key="comment_naver")
+        if st.button("✏️ 방향성 전환 적용", use_container_width=True, type="primary", key="apply_naver"):
+            if not comment.strip():
+                st.warning("수정 요청을 입력해주세요.")
+            elif check_api_key():
+                with st.spinner("방향성 전환 중..."):
+                    revised = gen.revise_with_comment(blog["final"], comment, "naver")
+                update_blog(topic["id"], final=revised)
+                st.rerun()
 
-        # 메트릭
-        naver_topics = [t for t in TOPICS if t.get("platform") == "naver"]
-        wp_topics = [t for t in TOPICS if t.get("platform") == "wordpress"]
-        naver_done = sum(1 for t in naver_topics if is_done(t["id"]))
-        wp_done = sum(1 for t in wp_topics if is_done(t["id"]))
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("📝 네이버", f"{naver_done}/{len(naver_topics)}")
-        c2.metric("🌐 워드프레스", f"{wp_done}/{len(wp_topics)}")
-        c3.metric("전체 완료", f"{done_count()}/{TOTAL}")
-        c4.metric("완료율", f"{int(done_count() / TOTAL * 100) if TOTAL > 0 else 0}%")
+        st.divider()
 
-        # 커스텀 주제 실행
-        if custom_go and st.session_state.custom_topic.strip():
-            if not check_api_key():
-                st.stop()
-            sel_platform = "naver" if "네이버" in custom_platform else "wordpress"
-            sel_label = "네이버" if sel_platform == "naver" else "워드프레스"
-            with st.status(f"커스텀 주제 작성 중 ({sel_label})...", expanded=True) as s:
-                topic_title = st.session_state.custom_topic.strip()
-                results = {}
-                cid = st.session_state.current_company
-                st.write(f"🍎 파이프라인 — {sel_label} 생성 중...")
-                r = pipeline.run_pipeline(topic_title, cid, sel_platform, status_callback=lambda msg: st.write(msg))
-                results[sel_platform] = r["blog"]
-                s.update(label="✅ 커스텀 주제 완료!", state="complete")
+        # ── 이미지 배치 ──
+        st.markdown("###### 📷 이미지 배치")
 
-            if results.get("naver"):
-                st.markdown("##### 📝 네이버 블로그")
-                render_blog_preview(results["naver"])
-                with st.expander("📋 복사"):
-                    st.code(results["naver"], language=None)
-            if results.get("wordpress"):
-                st.markdown("##### 🌐 워드프레스")
-                render_blog_preview(results["wordpress"])
-                with st.expander("📋 복사"):
-                    st.code(results["wordpress"], language=None)
-
-        st.stop()
-
-    # ═══════════════════════════════════════════════
-    #  주제 선택됨
-    # ═══════════════════════════════════════════════
-    topic = next((t for t in TOPICS if t["id"] == st.session_state.selected_id), None)
-    if not topic:
-        st.error("주제를 찾을 수 없습니다.")
-        st.stop()
-
-    blog = get_blog(topic["id"])
-    cid = st.session_state.current_company
-
-    st.markdown(
-        f'#### {topic["id"]:03d}. {topic["title"]} '
-        f'<span class="badge badge-{topic["category"]}">{topic["category"]}</span>',
-        unsafe_allow_html=True,
-    )
-    st.caption("✅ 완료" if is_done(topic["id"]) else "⬜ 미생성")
-
-    # ── 글 생성/재생성 ──
-    topic_platform = topic.get("platform", "naver")
-    platform_label = "📝 네이버 블로그" if topic_platform == "naver" else "🌐 워드프레스"
-    is_already_done = blog.get("final") or blog.get("wordpress")
-
-    if not is_already_done:
-        st.info(f"아직 생성되지 않은 주제입니다. ({platform_label} 전용)")
-        gen_label = f"✨ {platform_label} 생성"
-    else:
-        gen_label = f"🔄 {platform_label} 재생성"
-
-    do_gen = st.button(gen_label, type="primary", use_container_width=True, key=f"gen_blog_{topic['id']}")
-
-    if do_gen:
-        if not check_api_key():
-            st.stop()
-        with st.status(f"🍎 파이프라인 — {platform_label} {'재' if is_already_done else ''}생성 중...", expanded=True) as s:
-            result = pipeline.run_pipeline(
-                topic["title"], cid, topic_platform,
-                status_callback=lambda msg: st.write(msg)
-            )
-            blog_text = result["blog"]
-            footer = gen.generate_blog_footer(blog_text, cid)
-            blog_text = blog_text + "\n" + footer
-            qa_score = result.get("qa_score", 0)
-            img_prompts = result.get("image_prompts", "")
-            if topic_platform == "naver":
-                blog_data = dict(naver=blog_text, final=blog_text,
-                                 agents=["pipeline_7"], qa_score=qa_score)
-                if img_prompts:
-                    blog_data["naver_images"] = img_prompts
-            else:
-                blog_data = dict(wordpress=blog_text,
-                                 agents=["pipeline_7"], qa_score=qa_score)
-                if img_prompts:
-                    blog_data["wp_images"] = img_prompts
-            update_blog(topic["id"], **blog_data)
-            s.update(label=f"✅ 파이프라인 완료! QA {qa_score}/80", state="complete")
-        blog = get_blog(topic["id"])
-        is_already_done = True
-
-    if not is_already_done:
-        st.stop()
-
-    # ── 생성 완료: 탭 ──
-    tab_naver, tab_wp = st.tabs(["📝 네이버", "🌐 워드프레스"])
-
-    # ── 네이버 탭 ──
-    with tab_naver:
-        if blog.get("final"):
-            used_agents = blog.get("agents", [])
-            if used_agents:
-                names = []
-                for aid in used_agents:
-                    if aid == "custom":
-                        names.append("✏️커스텀")
-                    else:
-                        if a:
-                            names.append(f"{a['icon']}{a['name']}")
-                st.caption(f"참여 에이전트: {' · '.join(names)}")
-
-            # 이미지가 있으면 글 사이사이에 이미지 삽입, 없으면 글만
-            naver_img_paths = get_generated_image_paths(topic["id"], "naver")
-            if naver_img_paths and blog.get("naver_images"):
-                st.markdown("###### 📖 글 + 이미지 미리보기")
-                render_blog_with_images(blog["final"], blog["naver_images"], naver_img_paths)
-            else:
-                render_blog_preview(blog["final"])
-
-            with st.expander("📋 텍스트만 복사"):
-                st.code(blog["final"], language=None)
-
-            # ── HTML 다운로드 버튼 ──
-            naver_dl_paths = get_generated_image_paths(topic["id"], "naver")
-            html_data = build_html_with_images(
-                blog["final"],
-                blog.get("naver_images", ""),
-                naver_dl_paths,
-                platform="naver",
-                title=topic["title"],
-            )
-            st.download_button(
-                label="📥 HTML 다운로드 (이미지 포함)",
-                data=html_data.encode("utf-8"),
-                file_name=f"naver_{topic['id']:03d}_{topic['title'][:20]}.html",
-                mime="text/html",
-                use_container_width=True,
-                key="dl_naver_html",
-            )
-
-            st.divider()
-
-            # ── 방향성 전환 (코멘트 수정) — 이미지보다 위 ──
-            st.markdown("###### 🔀 방향성 전환")
-            comment = st.text_area("방향성 전환", placeholder="글의 방향, 톤, 강조점 등 수정 요청을 입력하세요",
-                                   height=60, label_visibility="collapsed", key="comment_naver")
-            if st.button("✏️ 방향성 전환 적용", use_container_width=True, type="primary", key="apply_naver"):
-                if not comment.strip():
-                    st.warning("수정 요청을 입력해주세요.")
-                elif check_api_key():
-                    with st.spinner("방향성 전환 중..."):
-                        revised = gen.revise_with_comment(blog["final"], comment, "naver")
-                    update_blog(topic["id"], final=revised)
-                    st.rerun()
-
-            st.divider()
-
-            # ── 이미지 배치 ──
-            st.markdown("###### 📷 이미지 배치")
-
-            # 이미지 팀 소개
-            with st.expander("🎬 네이버 이미지 팀 소개", expanded=False):
-                tc1, tc2, tc3 = st.columns(3)
-                with tc1:
-                    st.markdown("""<div class="collab-card">
-                        <div class="collab-icon">🏢</div>
-                        <div class="collab-name">현장콘텐츠 자문위원</div>
-                        <div class="collab-role">콘텐츠 기획</div>
-                        <div class="collab-career">부동산 현장 콘텐츠 제작 10년+<br>한국 건물주 시각 반응 데이터 전문가<br>상업용 건물 현장 촬영 디렉팅</div>
-                    </div>""", unsafe_allow_html=True)
-                with tc2:
-                    st.markdown("""<div class="collab-card">
-                        <div class="collab-icon">💡</div>
-                        <div class="collab-name">크리에이티브 자문위원</div>
-                        <div class="collab-role">크리에이티브 디렉터</div>
-                        <div class="collab-career">광고·마케팅 크리에이티브 총괄 전문가<br>한국 소비자 심리를 꿰뚫는 감각<br>40~60대 한국인 감성 마케팅 전문</div>
-                    </div>""", unsafe_allow_html=True)
-                with tc3:
-                    st.markdown("""<div class="collab-card">
-                        <div class="collab-icon">🎨</div>
-                        <div class="collab-name">아트디렉션 자문위원</div>
-                        <div class="collab-role">아트 디렉터</div>
-                        <div class="collab-career">미니멀하고 통일된 비주얼 톤 설계 전문가<br>전체 이미지 톤 통일 및 프롬프트 작성<br>미니멀리즘 비주얼 톤 통일의 마에스트로</div>
-                    </div>""", unsafe_allow_html=True)
-                st.markdown("""<div class="collab-step">
-                    <div class="step-label">STEP 1 · 콘텐츠 회의</div>
-                    <div class="step-desc">🏢 현장콘텐츠 자문위원이 현장 사진을 제안 → 💡 크리에이티브 자문위원이 감성/마케팅 관점으로 보완 → 소제목별 이미지 합의</div>
-                </div>
-                <div class="collab-step">
-                    <div class="step-label">STEP 2 · 비주얼 실행</div>
-                    <div class="step-desc">🎨 아트디렉션 자문위원이 합의 결과를 받아 → 전체 톤 통일 → 미니멀 프롬프트 작성 → AI 이미지 생성</div>
+        # 이미지 팀 소개
+        with st.expander("🎬 네이버 이미지 팀 소개", expanded=False):
+            tc1, tc2, tc3 = st.columns(3)
+            with tc1:
+                st.markdown("""<div class="collab-card">
+                    <div class="collab-icon">🏢</div>
+                    <div class="collab-name">현장콘텐츠 자문위원</div>
+                    <div class="collab-role">콘텐츠 기획</div>
+                    <div class="collab-career">부동산 현장 콘텐츠 제작 10년+<br>한국 건물주 시각 반응 데이터 전문가<br>상업용 건물 현장 촬영 디렉팅</div>
                 </div>""", unsafe_allow_html=True)
-
-            if blog.get("naver_images"):
-                with st.expander("📋 이미지 배치 계획 보기", expanded=not bool(naver_img_paths)):
-                    st.markdown(blog["naver_images"])
-
-                if naver_img_paths:
-                    st.success(f"✅ 이미지 {len(naver_img_paths)}장 생성 완료")
-
-                    # ZIP 다운로드 버튼
-                    import zipfile, io
-                    zip_buf = io.BytesIO()
-                    with zipfile.ZipFile(zip_buf, "w") as zf:
-                        for img_path in naver_img_paths:
-                            from pathlib import Path as _P
-                            zf.write(img_path, _P(img_path).name)
-                    zip_buf.seek(0)
-                    st.download_button(
-                        "📥 전체 이미지 다운로드 (ZIP)",
-                        data=zip_buf.getvalue(),
-                        file_name=f"topic_{topic['id']:03d}_naver_images.zip",
-                        mime="application/zip",
-                        use_container_width=True,
-                    )
-
-                    naver_prompts = gemini_client.parse_image_prompts(blog["naver_images"])
-                    for img_i, img_path in enumerate(naver_img_paths):
-                        col_img, col_btn = st.columns([4, 1])
-                        with col_img:
-                            st.image(img_path, caption=f"이미지 {img_i+1}", width=385)
-                        with col_btn:
-                            st.write("")
-                            st.write("")
-                            if st.button("🔄", key=f"regen_naver_img_{img_i}", help=f"이미지 {img_i+1} 다시 만들기"):
-                                if not gemini_client.is_authenticated():
-                                    st.warning("Gemini API 키 필요")
-                                elif img_i < len(naver_prompts):
-                                    with st.spinner(f"이미지 {img_i+1} 재생성 중..."):
-                                        result = gemini_client.regenerate_single_image(
-                                            naver_prompts[img_i], topic["id"], "naver", img_i + 1)
-                                    if result["success"]:
-                                        st.success("✅ 재생성 완료!")
-                                    else:
-                                        st.error(f"실패: {result['error']}")
-                                    st.rerun()
-                                else:
-                                    st.warning("프롬프트를 찾을 수 없습니다.")
-
-                    if st.button("🔄 전체 이미지 재생성", use_container_width=True, key="gen_all_img_naver"):
-                        if not gemini_client.is_authenticated():
-                            st.warning("Gemini API 키가 필요합니다.")
-                        else:
-                            with st.spinner("전체 이미지 재생성 중..."):
-                                results = gemini_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
-                            ok = sum(1 for r in results if r["success"])
-                            if ok:
-                                st.success(f"✅ {ok}장 재생성 완료")
-                            st.rerun()
-                else:
-                    if st.button("🖼️ AI 이미지 생성", use_container_width=True, type="primary", key="gen_img_naver"):
-                        if not gemini_client.is_authenticated():
-                            st.warning("Gemini API 키가 필요합니다.")
-                        else:
-                            with st.status("🖼️ AI가 이미지를 생성하고 있습니다...", expanded=True) as img_s:
-                                st.write("🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원의 콘텐츠 합의 기반...")
-                                st.write("🎨 아트디렉션 자문위원의 프롬프트로 이미지 생성 중...")
-                                results = gemini_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
-                                img_s.update(label="✅ 이미지 생성 완료!", state="complete")
-                            ok = sum(1 for r in results if r["success"])
-                            fail = sum(1 for r in results if not r["success"])
-                            if ok:
-                                st.success(f"✅ {ok}장 생성 완료")
-                            if fail:
-                                for r in results:
-                                    if not r["success"]:
-                                        st.error(f"실패: {r['error']}")
-                            st.rerun()
-
-                if st.button("🔄 이미지 계획 재생성", use_container_width=True, key="regen_img_naver"):
-                    if check_api_key():
-                        with st.status("🎬 네이버 이미지 팀 재협업...", expanded=True) as s:
-                            st.markdown("""<div class="collab-step"><div class="step-label">STEP 1</div>
-                            <div class="step-desc">🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원 콘텐츠 회의 중...</div>
-                            <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
-                            agent_prompts = ""
-                            def naver_regen_cb(msg):
-                                st.write(msg)
-                            img_plan = gen.generate_image_plan(blog["final"], "naver", agent_prompts, cid, status_callback=naver_regen_cb)
-                            update_blog(topic["id"], naver_images=img_plan)
-                            s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
-                        st.rerun()
-            else:
-                if st.button("📷 이미지 배치 계획 생성", use_container_width=True, type="primary", key="img_plan_naver"):
-                    if check_api_key():
-                        with st.status("🎬 네이버 이미지 팀 협업 시작...", expanded=True) as s:
-                            st.markdown("""<div class="collab-step"><div class="step-label">STEP 1 · 콘텐츠 회의</div>
-                            <div class="step-desc">🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원이 소제목별 이미지를 논의합니다</div>
-                            <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
-                            agent_prompts = ""
-                            def naver_cb(msg):
-                                st.write(msg)
-                            img_plan = gen.generate_image_plan(blog["final"], "naver", agent_prompts, cid, status_callback=naver_cb)
-                            update_blog(topic["id"], naver_images=img_plan)
-                            s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
-                        st.rerun()
-        else:
-            st.info("네이버 버전이 없습니다. 생성해주세요.")
-
-    # ── 워드프레스 탭 ──
-    with tab_wp:
-        if blog.get("wordpress"):
-            used_agents = blog.get("agents", [])
-            if used_agents:
-                names = []
-                for aid in used_agents:
-                    if aid == "custom":
-                        names.append("✏️커스텀")
-                    else:
-                        if a:
-                            names.append(f"{a['icon']}{a['name']}")
-                st.caption(f"참여 에이전트: {' · '.join(names)}")
-
-            # 이미지가 있으면 글 사이사이에 이미지 삽입
-            wp_img_paths = get_generated_image_paths(topic["id"], "wordpress")
-            if wp_img_paths and blog.get("wp_images"):
-                st.markdown("###### 📖 글 + 이미지 미리보기")
-                render_blog_with_images(blog["wordpress"], blog["wp_images"], wp_img_paths, platform="wordpress")
-            else:
-                render_blog_preview(blog["wordpress"])
-
-            with st.expander("📋 텍스트만 복사"):
-                st.code(blog["wordpress"], language=None)
-
-            # ── HTML 다운로드 버튼 ──
-            wp_dl_paths = get_generated_image_paths(topic["id"], "wordpress")
-            wp_html_data = build_html_with_images(
-                blog["wordpress"],
-                blog.get("wp_images", ""),
-                wp_dl_paths,
-                platform="wordpress",
-                title=topic["title"],
-            )
-            st.download_button(
-                label="📥 HTML 다운로드 (이미지 포함)",
-                data=wp_html_data.encode("utf-8"),
-                file_name=f"wordpress_{topic['id']:03d}_{topic['title'][:20]}.html",
-                mime="text/html",
-                use_container_width=True,
-                key="dl_wp_html",
-            )
-
-            st.divider()
-
-            # ── 방향성 전환 (코멘트 수정) — 이미지보다 위 ──
-            st.markdown("###### 🔀 방향성 전환")
-            comment_wp = st.text_area("방향성 전환", placeholder="글의 방향, 톤, SEO 키워드 등 수정 요청을 입력하세요",
-                                      height=60, label_visibility="collapsed", key="comment_wp")
-            if st.button("✏️ 방향성 전환 적용", use_container_width=True, type="primary", key="apply_wp"):
-                if not comment_wp.strip():
-                    st.warning("수정 요청을 입력해주세요.")
-                elif check_api_key():
-                    with st.spinner("방향성 전환 중..."):
-                        revised = gen.revise_with_comment(blog["wordpress"], comment_wp, "wordpress")
-                    update_blog(topic["id"], wordpress=revised)
-                    st.rerun()
-
-            st.divider()
-
-            # ── 이미지 배치 ──
-            st.markdown("###### 📷 이미지 배치")
-
-            # 워드프레스 이미지 팀 소개 (네이버와 다른 팀!)
-            with st.expander("🎬 워드프레스 이미지 팀 소개", expanded=False):
-                tc1, tc2, tc3 = st.columns(3)
-                with tc1:
-                    st.markdown("""<div class="collab-card">
-                        <div class="collab-icon">📊</div>
-                        <div class="collab-name">정보시각화 자문위원</div>
-                        <div class="collab-role">정보 시각화 설계</div>
-                        <div class="collab-career">데이터 시각화·인포그래픽·다이어그램 설계 전문가<br>불필요한 장식 제거, 정보 밀도 극대화<br>데이터→시각물 변환의 권위자</div>
-                    </div>""", unsafe_allow_html=True)
-                with tc2:
-                    st.markdown("""<div class="collab-card">
-                        <div class="collab-icon">📐</div>
-                        <div class="collab-name">미디어디자인 자문위원</div>
-                        <div class="collab-role">한국 미디어 디자인</div>
-                        <div class="collab-career">한국 미디어/디자인 산업 전문가<br>글로벌 트렌드와 한국 비즈니스 맥락의 교차점 파악<br>한국 비즈니스 정보 디자인의 핵심 인물</div>
-                    </div>""", unsafe_allow_html=True)
-                with tc3:
-                    st.markdown("""<div class="collab-card">
-                        <div class="collab-icon">🎨</div>
-                        <div class="collab-name">아트디렉션 자문위원</div>
-                        <div class="collab-role">미니멀 실행</div>
-                        <div class="collab-career">미니멀하고 통일된 비주얼 톤 설계 전문가<br>전체 이미지 톤 통일 및 프롬프트 작성<br>미니멀리즘 비주얼 톤 통일의 마에스트로</div>
-                    </div>""", unsafe_allow_html=True)
-                st.markdown("""<div class="collab-step">
-                    <div class="step-label">STEP 1 · 정보 시각화 회의</div>
-                    <div class="step-desc">📊 정보시각화 자문위원이 데이터 시각화 방향을 설계 → 📐 미디어디자인 자문위원이 한국 비즈니스 맥락으로 조율 → 소제목별 정보 시각물 합의</div>
-                </div>
-                <div class="collab-step">
-                    <div class="step-label">STEP 2 · 미니멀 실행</div>
-                    <div class="step-desc">🎨 아트디렉션 자문위원이 합의 결과를 받아 → 미니멀 스타일 톤 통일 → 레이아웃 선택 → 미니멀 프롬프트 작성</div>
+            with tc2:
+                st.markdown("""<div class="collab-card">
+                    <div class="collab-icon">💡</div>
+                    <div class="collab-name">크리에이티브 자문위원</div>
+                    <div class="collab-role">크리에이티브 디렉터</div>
+                    <div class="collab-career">광고·마케팅 크리에이티브 총괄 전문가<br>한국 소비자 심리를 꿰뚫는 감각<br>40~60대 한국인 감성 마케팅 전문</div>
                 </div>""", unsafe_allow_html=True)
+            with tc3:
+                st.markdown("""<div class="collab-card">
+                    <div class="collab-icon">🎨</div>
+                    <div class="collab-name">아트디렉션 자문위원</div>
+                    <div class="collab-role">아트 디렉터</div>
+                    <div class="collab-career">미니멀하고 통일된 비주얼 톤 설계 전문가<br>전체 이미지 톤 통일 및 프롬프트 작성<br>미니멀리즘 비주얼 톤 통일의 마에스트로</div>
+                </div>""", unsafe_allow_html=True)
+            st.markdown("""<div class="collab-step">
+                <div class="step-label">STEP 1 · 콘텐츠 회의</div>
+                <div class="step-desc">🏢 현장콘텐츠 자문위원이 현장 사진을 제안 → 💡 크리에이티브 자문위원이 감성/마케팅 관점으로 보완 → 소제목별 이미지 합의</div>
+            </div>
+            <div class="collab-step">
+                <div class="step-label">STEP 2 · 비주얼 실행</div>
+                <div class="step-desc">🎨 아트디렉션 자문위원이 합의 결과를 받아 → 전체 톤 통일 → 미니멀 프롬프트 작성 → AI 이미지 생성</div>
+            </div>""", unsafe_allow_html=True)
 
-            if blog.get("wp_images"):
-                with st.expander("📋 이미지 배치 계획 보기", expanded=not bool(wp_img_paths)):
-                    st.markdown(blog["wp_images"])
+        if blog.get("naver_images"):
+            with st.expander("📋 이미지 배치 계획 보기", expanded=not bool(naver_img_paths)):
+                st.markdown(blog["naver_images"])
 
-                if wp_img_paths:
-                    st.success(f"✅ 이미지 {len(wp_img_paths)}장 생성 완료")
+            if naver_img_paths:
+                st.success(f"✅ 이미지 {len(naver_img_paths)}장 생성 완료")
 
-                    # ZIP 다운로드 버튼
-                    import zipfile, io
-                    zip_buf = io.BytesIO()
-                    with zipfile.ZipFile(zip_buf, "w") as zf:
-                        for img_path in wp_img_paths:
-                            from pathlib import Path as _P
-                            zf.write(img_path, _P(img_path).name)
-                    zip_buf.seek(0)
-                    st.download_button(
-                        "📥 전체 이미지 다운로드 (ZIP)",
-                        data=zip_buf.getvalue(),
-                        file_name=f"topic_{topic['id']:03d}_wp_images.zip",
-                        mime="application/zip",
-                        use_container_width=True,
-                        key="dl_wp_images",
-                    )
+                # ZIP 다운로드 버튼
+                import zipfile, io
+                zip_buf = io.BytesIO()
+                with zipfile.ZipFile(zip_buf, "w") as zf:
+                    for img_path in naver_img_paths:
+                        from pathlib import Path as _P
+                        zf.write(img_path, _P(img_path).name)
+                zip_buf.seek(0)
+                st.download_button(
+                    "📥 전체 이미지 다운로드 (ZIP)",
+                    data=zip_buf.getvalue(),
+                    file_name=f"topic_{topic['id']:03d}_naver_images.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                )
 
-                    wp_prompts = gemini_client.parse_image_prompts(blog["wp_images"])
-                    for img_i, img_path in enumerate(wp_img_paths):
-                        col_img, col_btn = st.columns([4, 1])
-                        with col_img:
-                            st.image(img_path, caption=f"이미지 {img_i+1}", width=385)
-                        with col_btn:
-                            st.write("")
-                            st.write("")
-                            if st.button("🔄", key=f"regen_wp_img_{img_i}", help=f"이미지 {img_i+1} 다시 만들기"):
-                                if not gemini_client.is_authenticated():
-                                    st.warning("Gemini API 키 필요")
-                                elif img_i < len(wp_prompts):
-                                    with st.spinner(f"이미지 {img_i+1} 재생성 중..."):
-                                        result = gemini_client.regenerate_single_image(
-                                            wp_prompts[img_i], topic["id"], "wordpress", img_i + 1)
-                                    if result["success"]:
-                                        st.success("✅ 재생성 완료!")
-                                    else:
-                                        st.error(f"실패: {result['error']}")
-                                    st.rerun()
+                naver_prompts = gemini_client.parse_image_prompts(blog["naver_images"])
+                for img_i, img_path in enumerate(naver_img_paths):
+                    col_img, col_btn = st.columns([4, 1])
+                    with col_img:
+                        st.image(img_path, caption=f"이미지 {img_i+1}", width=385)
+                    with col_btn:
+                        st.write("")
+                        st.write("")
+                        if st.button("🔄", key=f"regen_naver_img_{img_i}", help=f"이미지 {img_i+1} 다시 만들기"):
+                            if not gemini_client.is_authenticated():
+                                st.warning("Gemini API 키 필요")
+                            elif img_i < len(naver_prompts):
+                                with st.spinner(f"이미지 {img_i+1} 재생성 중..."):
+                                    result = gemini_client.regenerate_single_image(
+                                        naver_prompts[img_i], topic["id"], "naver", img_i + 1)
+                                if result["success"]:
+                                    st.success("✅ 재생성 완료!")
                                 else:
-                                    st.warning("프롬프트를 찾을 수 없습니다.")
+                                    st.error(f"실패: {result['error']}")
+                                st.rerun()
+                            else:
+                                st.warning("프롬프트를 찾을 수 없습니다.")
 
-                    if st.button("🔄 전체 이미지 재생성", use_container_width=True, key="gen_all_img_wp"):
-                        if not gemini_client.is_authenticated():
-                            st.warning("Gemini API 키가 필요합니다.")
-                        else:
-                            with st.spinner("전체 이미지 재생성 중..."):
-                                results = gemini_client.generate_blog_images(blog["wp_images"], topic["id"], "wordpress")
-                            ok = sum(1 for r in results if r["success"])
-                            if ok:
-                                st.success(f"✅ {ok}장 재생성 완료")
-                            st.rerun()
-                else:
-                    if st.button("🖼️ AI 이미지 생성", use_container_width=True, type="primary", key="gen_img_wp"):
-                        if not gemini_client.is_authenticated():
-                            st.warning("Gemini API 키가 필요합니다.")
-                        else:
-                            with st.status("🖼️ AI가 이미지를 생성하고 있습니다...", expanded=True) as img_s:
-                                st.write("📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원의 정보 시각화 합의 기반...")
-                                st.write("🎨 아트디렉션 자문위원의 미니멀 프롬프트로 이미지 생성 중...")
-                                results = gemini_client.generate_blog_images(blog["wp_images"], topic["id"], "wordpress")
-                                img_s.update(label="✅ 이미지 생성 완료!", state="complete")
-                            ok = sum(1 for r in results if r["success"])
-                            fail = sum(1 for r in results if not r["success"])
-                            if ok:
-                                st.success(f"✅ {ok}장 생성 완료")
-                            if fail:
-                                for r in results:
-                                    if not r["success"]:
-                                        st.error(f"실패: {r['error']}")
-                            st.rerun()
-
-                if st.button("🔄 이미지 계획 재생성", use_container_width=True, key="regen_img_wp"):
-                    if check_api_key():
-                        with st.status("🎬 워드프레스 이미지 팀 재협업...", expanded=True) as s:
-                            st.markdown("""<div class="collab-step"><div class="step-label">STEP 1</div>
-                            <div class="step-desc">📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원 정보 시각화 회의 중...</div>
-                            <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
-                            agent_prompts = ""
-                            def wp_regen_cb(msg):
-                                st.write(msg)
-                            img_plan = gen.generate_image_plan(blog["wordpress"], "wordpress", agent_prompts, cid, status_callback=wp_regen_cb)
-                            update_blog(topic["id"], wp_images=img_plan)
-                            s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
+                if st.button("🔄 전체 이미지 재생성", use_container_width=True, key="gen_all_img_naver"):
+                    if not gemini_client.is_authenticated():
+                        st.warning("Gemini API 키가 필요합니다.")
+                    else:
+                        with st.spinner("전체 이미지 재생성 중..."):
+                            results = gemini_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
+                        ok = sum(1 for r in results if r["success"])
+                        if ok:
+                            st.success(f"✅ {ok}장 재생성 완료")
                         st.rerun()
             else:
-                if st.button("📷 이미지 배치 계획 생성", use_container_width=True, type="primary", key="img_plan_wp"):
-                    if check_api_key():
-                        with st.status("🎬 워드프레스 이미지 팀 협업 시작...", expanded=True) as s:
-                            st.markdown("""<div class="collab-step"><div class="step-label">STEP 1 · 정보 시각화 회의</div>
-                            <div class="step-desc">📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원이 소제목별 정보 시각물을 논의합니다</div>
-                            <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
-                            agent_prompts = ""
-                            def wp_cb(msg):
-                                st.write(msg)
-                            img_plan = gen.generate_image_plan(blog["wordpress"], "wordpress", agent_prompts, cid, status_callback=wp_cb)
-                            update_blog(topic["id"], wp_images=img_plan)
-                            s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
+                if st.button("🖼️ AI 이미지 생성", use_container_width=True, type="primary", key="gen_img_naver"):
+                    if not gemini_client.is_authenticated():
+                        st.warning("Gemini API 키가 필요합니다.")
+                    else:
+                        with st.status("🖼️ AI가 이미지를 생성하고 있습니다...", expanded=True) as img_s:
+                            st.write("🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원의 콘텐츠 합의 기반...")
+                            st.write("🎨 아트디렉션 자문위원의 프롬프트로 이미지 생성 중...")
+                            results = gemini_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
+                            img_s.update(label="✅ 이미지 생성 완료!", state="complete")
+                        ok = sum(1 for r in results if r["success"])
+                        fail = sum(1 for r in results if not r["success"])
+                        if ok:
+                            st.success(f"✅ {ok}장 생성 완료")
+                        if fail:
+                            for r in results:
+                                if not r["success"]:
+                                    st.error(f"실패: {r['error']}")
                         st.rerun()
-        else:
-            st.info("워드프레스 버전이 아직 없습니다.")
-            st.caption("네이버 최종본 기반으로 2,500자 내외 SEO 구조로 변환됩니다.")
-            if st.button("🌐 워드프레스 버전 만들기", type="primary", use_container_width=True):
+
+            if st.button("🔄 이미지 계획 재생성", use_container_width=True, key="regen_img_naver"):
                 if check_api_key():
-                    with st.spinner("워드프레스 생성 중..."):
+                    with st.status("🎬 네이버 이미지 팀 재협업...", expanded=True) as s:
+                        st.markdown("""<div class="collab-step"><div class="step-label">STEP 1</div>
+                        <div class="step-desc">🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원 콘텐츠 회의 중...</div>
+                        <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
                         agent_prompts = ""
-                        wp = gen.generate_wordpress_blog(blog["final"], topic["title"], agent_prompts, cid)
-                        update_blog(topic["id"], wordpress=wp)
+                        def naver_regen_cb(msg):
+                            st.write(msg)
+                        img_plan = gen.generate_image_plan(blog["final"], "naver", agent_prompts, cid, status_callback=naver_regen_cb)
+                        update_blog(topic["id"], naver_images=img_plan)
+                        s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
                     st.rerun()
+        else:
+            if st.button("📷 이미지 배치 계획 생성", use_container_width=True, type="primary", key="img_plan_naver"):
+                if check_api_key():
+                    with st.status("🎬 네이버 이미지 팀 협업 시작...", expanded=True) as s:
+                        st.markdown("""<div class="collab-step"><div class="step-label">STEP 1 · 콘텐츠 회의</div>
+                        <div class="step-desc">🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원이 소제목별 이미지를 논의합니다</div>
+                        <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
+                        agent_prompts = ""
+                        def naver_cb(msg):
+                            st.write(msg)
+                        img_plan = gen.generate_image_plan(blog["final"], "naver", agent_prompts, cid, status_callback=naver_cb)
+                        update_blog(topic["id"], naver_images=img_plan)
+                        s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
+                    st.rerun()
+    else:
+        st.info("네이버 버전이 없습니다. 생성해주세요.")
+
+# ── 워드프레스 탭 ──
+with tab_wp:
+    if blog.get("wordpress"):
+        used_agents = blog.get("agents", [])
+        if used_agents:
+            names = []
+            for aid in used_agents:
+                if aid == "custom":
+                    names.append("✏️커스텀")
+                elif aid == "pipeline_7":
+                    names.append("🍎파이프라인")
+                else:
+                    a = next((ag for ag in AGENTS if ag["id"] == aid), None)
+                    if a:
+                        names.append(f"{a['icon']}{a['name']}")
+            st.caption(f"참여 에이전트: {' · '.join(names)}")
+
+        # 이미지가 있으면 글 사이사이에 이미지 삽입
+        wp_img_paths = get_generated_image_paths(topic["id"], "wordpress")
+        if wp_img_paths and blog.get("wp_images"):
+            st.markdown("###### 📖 글 + 이미지 미리보기")
+            render_blog_with_images(blog["wordpress"], blog["wp_images"], wp_img_paths, platform="wordpress")
+        else:
+            render_blog_preview(blog["wordpress"])
+
+        with st.expander("📋 텍스트만 복사"):
+            st.code(blog["wordpress"], language=None)
+
+        # ── HTML 다운로드 버튼 ──
+        wp_dl_paths = get_generated_image_paths(topic["id"], "wordpress")
+        wp_html_data = build_html_with_images(
+            blog["wordpress"],
+            blog.get("wp_images", ""),
+            wp_dl_paths,
+            platform="wordpress",
+            title=topic["title"],
+        )
+        st.download_button(
+            label="📥 HTML 다운로드 (이미지 포함)",
+            data=wp_html_data.encode("utf-8"),
+            file_name=f"wordpress_{topic['id']:03d}_{topic['title'][:20]}.html",
+            mime="text/html",
+            use_container_width=True,
+            key="dl_wp_html",
+        )
+
+        st.divider()
+
+        # ── 방향성 전환 (코멘트 수정) — 이미지보다 위 ──
+        st.markdown("###### 🔀 방향성 전환")
+        comment_wp = st.text_area("방향성 전환", placeholder="글의 방향, 톤, SEO 키워드 등 수정 요청을 입력하세요",
+                                  height=60, label_visibility="collapsed", key="comment_wp")
+        if st.button("✏️ 방향성 전환 적용", use_container_width=True, type="primary", key="apply_wp"):
+            if not comment_wp.strip():
+                st.warning("수정 요청을 입력해주세요.")
+            elif check_api_key():
+                with st.spinner("방향성 전환 중..."):
+                    revised = gen.revise_with_comment(blog["wordpress"], comment_wp, "wordpress")
+                update_blog(topic["id"], wordpress=revised)
+                st.rerun()
+
+        st.divider()
+
+        # ── 이미지 배치 ──
+        st.markdown("###### 📷 이미지 배치")
+
+        # 워드프레스 이미지 팀 소개 (네이버와 다른 팀!)
+        with st.expander("🎬 워드프레스 이미지 팀 소개", expanded=False):
+            tc1, tc2, tc3 = st.columns(3)
+            with tc1:
+                st.markdown("""<div class="collab-card">
+                    <div class="collab-icon">📊</div>
+                    <div class="collab-name">정보시각화 자문위원</div>
+                    <div class="collab-role">정보 시각화 설계</div>
+                    <div class="collab-career">데이터 시각화·인포그래픽·다이어그램 설계 전문가<br>불필요한 장식 제거, 정보 밀도 극대화<br>데이터→시각물 변환의 권위자</div>
+                </div>""", unsafe_allow_html=True)
+            with tc2:
+                st.markdown("""<div class="collab-card">
+                    <div class="collab-icon">📐</div>
+                    <div class="collab-name">미디어디자인 자문위원</div>
+                    <div class="collab-role">한국 미디어 디자인</div>
+                    <div class="collab-career">한국 미디어/디자인 산업 전문가<br>글로벌 트렌드와 한국 비즈니스 맥락의 교차점 파악<br>한국 비즈니스 정보 디자인의 핵심 인물</div>
+                </div>""", unsafe_allow_html=True)
+            with tc3:
+                st.markdown("""<div class="collab-card">
+                    <div class="collab-icon">🎨</div>
+                    <div class="collab-name">아트디렉션 자문위원</div>
+                    <div class="collab-role">미니멀 실행</div>
+                    <div class="collab-career">미니멀하고 통일된 비주얼 톤 설계 전문가<br>전체 이미지 톤 통일 및 프롬프트 작성<br>미니멀리즘 비주얼 톤 통일의 마에스트로</div>
+                </div>""", unsafe_allow_html=True)
+            st.markdown("""<div class="collab-step">
+                <div class="step-label">STEP 1 · 정보 시각화 회의</div>
+                <div class="step-desc">📊 정보시각화 자문위원이 데이터 시각화 방향을 설계 → 📐 미디어디자인 자문위원이 한국 비즈니스 맥락으로 조율 → 소제목별 정보 시각물 합의</div>
+            </div>
+            <div class="collab-step">
+                <div class="step-label">STEP 2 · 미니멀 실행</div>
+                <div class="step-desc">🎨 아트디렉션 자문위원이 합의 결과를 받아 → 미니멀 스타일 톤 통일 → 레이아웃 선택 → 미니멀 프롬프트 작성</div>
+            </div>""", unsafe_allow_html=True)
+
+        if blog.get("wp_images"):
+            with st.expander("📋 이미지 배치 계획 보기", expanded=not bool(wp_img_paths)):
+                st.markdown(blog["wp_images"])
+
+            if wp_img_paths:
+                st.success(f"✅ 이미지 {len(wp_img_paths)}장 생성 완료")
+
+                # ZIP 다운로드 버튼
+                import zipfile, io
+                zip_buf = io.BytesIO()
+                with zipfile.ZipFile(zip_buf, "w") as zf:
+                    for img_path in wp_img_paths:
+                        from pathlib import Path as _P
+                        zf.write(img_path, _P(img_path).name)
+                zip_buf.seek(0)
+                st.download_button(
+                    "📥 전체 이미지 다운로드 (ZIP)",
+                    data=zip_buf.getvalue(),
+                    file_name=f"topic_{topic['id']:03d}_wp_images.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                    key="dl_wp_images",
+                )
+
+                wp_prompts = gemini_client.parse_image_prompts(blog["wp_images"])
+                for img_i, img_path in enumerate(wp_img_paths):
+                    col_img, col_btn = st.columns([4, 1])
+                    with col_img:
+                        st.image(img_path, caption=f"이미지 {img_i+1}", width=385)
+                    with col_btn:
+                        st.write("")
+                        st.write("")
+                        if st.button("🔄", key=f"regen_wp_img_{img_i}", help=f"이미지 {img_i+1} 다시 만들기"):
+                            if not gemini_client.is_authenticated():
+                                st.warning("Gemini API 키 필요")
+                            elif img_i < len(wp_prompts):
+                                with st.spinner(f"이미지 {img_i+1} 재생성 중..."):
+                                    result = gemini_client.regenerate_single_image(
+                                        wp_prompts[img_i], topic["id"], "wordpress", img_i + 1)
+                                if result["success"]:
+                                    st.success("✅ 재생성 완료!")
+                                else:
+                                    st.error(f"실패: {result['error']}")
+                                st.rerun()
+                            else:
+                                st.warning("프롬프트를 찾을 수 없습니다.")
+
+                if st.button("🔄 전체 이미지 재생성", use_container_width=True, key="gen_all_img_wp"):
+                    if not gemini_client.is_authenticated():
+                        st.warning("Gemini API 키가 필요합니다.")
+                    else:
+                        with st.spinner("전체 이미지 재생성 중..."):
+                            results = gemini_client.generate_blog_images(blog["wp_images"], topic["id"], "wordpress")
+                        ok = sum(1 for r in results if r["success"])
+                        if ok:
+                            st.success(f"✅ {ok}장 재생성 완료")
+                        st.rerun()
+            else:
+                if st.button("🖼️ AI 이미지 생성", use_container_width=True, type="primary", key="gen_img_wp"):
+                    if not gemini_client.is_authenticated():
+                        st.warning("Gemini API 키가 필요합니다.")
+                    else:
+                        with st.status("🖼️ AI가 이미지를 생성하고 있습니다...", expanded=True) as img_s:
+                            st.write("📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원의 정보 시각화 합의 기반...")
+                            st.write("🎨 아트디렉션 자문위원의 미니멀 프롬프트로 이미지 생성 중...")
+                            results = gemini_client.generate_blog_images(blog["wp_images"], topic["id"], "wordpress")
+                            img_s.update(label="✅ 이미지 생성 완료!", state="complete")
+                        ok = sum(1 for r in results if r["success"])
+                        fail = sum(1 for r in results if not r["success"])
+                        if ok:
+                            st.success(f"✅ {ok}장 생성 완료")
+                        if fail:
+                            for r in results:
+                                if not r["success"]:
+                                    st.error(f"실패: {r['error']}")
+                        st.rerun()
+
+            if st.button("🔄 이미지 계획 재생성", use_container_width=True, key="regen_img_wp"):
+                if check_api_key():
+                    with st.status("🎬 워드프레스 이미지 팀 재협업...", expanded=True) as s:
+                        st.markdown("""<div class="collab-step"><div class="step-label">STEP 1</div>
+                        <div class="step-desc">📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원 정보 시각화 회의 중...</div>
+                        <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
+                        agent_prompts = ""
+                        def wp_regen_cb(msg):
+                            st.write(msg)
+                        img_plan = gen.generate_image_plan(blog["wordpress"], "wordpress", agent_prompts, cid, status_callback=wp_regen_cb)
+                        update_blog(topic["id"], wp_images=img_plan)
+                        s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
+                    st.rerun()
+        else:
+            if st.button("📷 이미지 배치 계획 생성", use_container_width=True, type="primary", key="img_plan_wp"):
+                if check_api_key():
+                    with st.status("🎬 워드프레스 이미지 팀 협업 시작...", expanded=True) as s:
+                        st.markdown("""<div class="collab-step"><div class="step-label">STEP 1 · 정보 시각화 회의</div>
+                        <div class="step-desc">📊 정보시각화 자문위원 + 📐 미디어디자인 자문위원이 소제목별 정보 시각물을 논의합니다</div>
+                        <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
+                        agent_prompts = ""
+                        def wp_cb(msg):
+                            st.write(msg)
+                        img_plan = gen.generate_image_plan(blog["wordpress"], "wordpress", agent_prompts, cid, status_callback=wp_cb)
+                        update_blog(topic["id"], wp_images=img_plan)
+                        s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
+                    st.rerun()
+    else:
+        st.info("워드프레스 버전이 아직 없습니다.")
+        st.caption("네이버 최종본 기반으로 2,500자 내외 SEO 구조로 변환됩니다.")
+        if st.button("🌐 워드프레스 버전 만들기", type="primary", use_container_width=True):
+            if check_api_key():
+                with st.spinner("워드프레스 생성 중..."):
+                    agent_prompts = ""
+                    wp = gen.generate_wordpress_blog(blog["final"], topic["title"], agent_prompts, cid)
+                    update_blog(topic["id"], wordpress=wp)
+                st.rerun()

@@ -60,11 +60,21 @@ h2 { font-size: 1.2rem !important; }
 h3 { font-size: 1.05rem !important; }
 h4 { font-size: 0.95rem !important; }
 p, li, span, div { font-size: 13px; }
-section[data-testid="stSidebar"] { width: 380px !important; }
+section[data-testid="stSidebar"] { width: 304px !important; }
 section[data-testid="stSidebar"] .stButton button {
-    font-size: 11px !important; padding: 5px 9px !important;
+    font-size: 11px !important; padding: 8px 9px 8px 4.2em !important;
     text-align: left !important; white-space: normal !important;
-    word-break: keep-all; line-height: 1.3;
+    word-break: keep-all; line-height: 1.5;
+    min-height: 48px !important;
+    display: block !important;
+    overflow: hidden;
+    text-indent: -3.5em;
+    justify-content: flex-start !important; align-items: flex-start !important;
+}
+section[data-testid="stSidebar"] .stButton button p,
+section[data-testid="stSidebar"] .stButton button span,
+section[data-testid="stSidebar"] .stButton button div {
+    text-align: left !important; justify-content: flex-start !important;
 }
 section[data-testid="stSidebar"] .stRadio label { font-size: 11px !important; padding: 2px 5px !important; }
 .badge { display: inline-block; padding: 1px 6px; border-radius: 8px;
@@ -201,6 +211,16 @@ def check_api_key():
         return False
     gen.CLAUDE_API_KEY = key
     return True
+
+def _auto_recommend_agents(topic_title: str):
+    """토픽 선택 시 플랫폼에 맞는 에이전트 2명을 자동 추천"""
+    platform = "naver" if st.session_state.get("platform_naver") else "wordpress"
+    try:
+        recs = recommend_agents(topic_title, platform, CLAUDE_API_KEY)
+        st.session_state.selected_agents = recs
+    except Exception:
+        pass  # 실패 시 기존 선택 유지
+
 
 def get_selected_agent_prompts():
     """선택된 에이전트 + 플랫폼 필수 에이전트의 프롬프트를 합쳐서 반환"""
@@ -575,7 +595,7 @@ with st.sidebar:
     st.divider()
 
     # 주제 목록
-    topic_container = st.container(height=420)
+    topic_container = st.container(height=450)
     with topic_container:
         for t in filtered_topics():
             status = "✅" if is_done(t["id"]) else "⬜"
@@ -584,6 +604,7 @@ with st.sidebar:
             if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
                          type="primary" if is_sel else "secondary"):
                 st.session_state.selected_id = t["id"]
+                _auto_recommend_agents(t["title"])
                 st.session_state.page = "main"
                 st.rerun()
 
@@ -822,11 +843,13 @@ elif st.session_state.page == "all_view":
         if done:
             if c4.button("보기", key=f"v_{t['id']}", use_container_width=True):
                 st.session_state.selected_id = t["id"]
+                _auto_recommend_agents(t["title"])
                 st.session_state.page = "main"
                 st.rerun()
         else:
             if c4.button("생성", key=f"g_{t['id']}", use_container_width=True):
                 st.session_state.selected_id = t["id"]
+                _auto_recommend_agents(t["title"])
                 st.session_state.page = "main"
                 st.rerun()
 
@@ -1036,14 +1059,7 @@ else:
         if not naver_on2 and not wp_on2:
             visible_ids2 = {a["id"] for a in AGENTS}
 
-        # AI 추천 버튼
-        rec_col1, rec_col2 = st.columns([3, 1])
-        with rec_col2:
-            if st.button("🤖 AI 추천", key="btn_recommend_detail"):
-                platform = "naver" if naver_on2 else "wordpress"
-                recs = recommend_agents(topic["title"], platform, CLAUDE_API_KEY)
-                st.session_state.selected_agents = recs
-                st.rerun()
+        # 에이전트는 토픽 선택 시 자동 추천됨
 
         visible_agents2 = [a for a in AGENTS if a["id"] in visible_ids2 and a["id"] not in hidden_ids2]
 

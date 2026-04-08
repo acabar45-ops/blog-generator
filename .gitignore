@@ -1,0 +1,22 @@
+# 시크릿 / 인증
+.streamlit/secrets.toml
+config_local.py
+client_secret.json
+token.json
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# 생성된 데이터 (선택: 포함하려면 아래 3줄 삭제)
+data/images/
+data/blogs/
+data/companies/
+
+# OS
+.DS_Store
+Thumbs.db

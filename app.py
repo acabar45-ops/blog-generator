@@ -1266,6 +1266,23 @@ else:
 
                 if naver_img_paths:
                     st.success(f"✅ 이미지 {len(naver_img_paths)}장 생성 완료")
+
+                    # ZIP 다운로드 버튼
+                    import zipfile, io
+                    zip_buf = io.BytesIO()
+                    with zipfile.ZipFile(zip_buf, "w") as zf:
+                        for img_path in naver_img_paths:
+                            from pathlib import Path as _P
+                            zf.write(img_path, _P(img_path).name)
+                    zip_buf.seek(0)
+                    st.download_button(
+                        "📥 전체 이미지 다운로드 (ZIP)",
+                        data=zip_buf.getvalue(),
+                        file_name=f"topic_{topic['id']:03d}_naver_images.zip",
+                        mime="application/zip",
+                        use_container_width=True,
+                    )
+
                     naver_prompts = gemini_client.parse_image_prompts(blog["naver_images"])
                     for img_i, img_path in enumerate(naver_img_paths):
                         col_img, col_btn = st.columns([4, 1])
@@ -1452,6 +1469,24 @@ else:
 
                 if wp_img_paths:
                     st.success(f"✅ 이미지 {len(wp_img_paths)}장 생성 완료")
+
+                    # ZIP 다운로드 버튼
+                    import zipfile, io
+                    zip_buf = io.BytesIO()
+                    with zipfile.ZipFile(zip_buf, "w") as zf:
+                        for img_path in wp_img_paths:
+                            from pathlib import Path as _P
+                            zf.write(img_path, _P(img_path).name)
+                    zip_buf.seek(0)
+                    st.download_button(
+                        "📥 전체 이미지 다운로드 (ZIP)",
+                        data=zip_buf.getvalue(),
+                        file_name=f"topic_{topic['id']:03d}_wp_images.zip",
+                        mime="application/zip",
+                        use_container_width=True,
+                        key="dl_wp_images",
+                    )
+
                     wp_prompts = gemini_client.parse_image_prompts(blog["wp_images"])
                     for img_i, img_path in enumerate(wp_img_paths):
                         col_img, col_btn = st.columns([4, 1])

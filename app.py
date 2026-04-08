@@ -297,29 +297,35 @@ def render_blog_with_images(blog_content, image_plan, image_paths, platform="nav
             render_blog_preview("\n".join(content_buffer))
             content_buffer = []
             for img_path, layout in img_map[li]:
+                # 모든 이미지를 가운데 정렬 (글 본문과 동일한 중앙 배치)
                 if platform == "naver" or layout == "full":
-                    st.image(img_path, width=550)
-                elif layout == "large":
-                    st.image(img_path, width=480)
-                elif layout == "medium":
-                    col_l, col_c, col_r = st.columns([1, 3, 1])
+                    col_l, col_c, col_r = st.columns([0.5, 9, 0.5])
                     with col_c:
-                        st.image(img_path, width=380)
+                        st.image(img_path, use_container_width=True)
+                elif layout == "large":
+                    col_l, col_c, col_r = st.columns([1, 8, 1])
+                    with col_c:
+                        st.image(img_path, use_container_width=True)
+                elif layout == "medium":
+                    col_l, col_c, col_r = st.columns([1.5, 7, 1.5])
+                    with col_c:
+                        st.image(img_path, use_container_width=True)
                 elif layout == "side-left":
                     col_img, col_txt = st.columns([2, 3])
                     with col_img:
-                        st.image(img_path, width=280)
+                        st.image(img_path, use_container_width=True)
                 elif layout == "side-right":
                     col_txt, col_img = st.columns([3, 2])
                     with col_img:
-                        st.image(img_path, width=280)
+                        st.image(img_path, use_container_width=True)
                 elif layout == "pair":
-                    # pair는 다음 이미지와 나란히 (여기서는 단독 처리)
                     col_a, col_b = st.columns(2)
                     with col_a:
-                        st.image(img_path, width=270)
+                        st.image(img_path, use_container_width=True)
                 else:
-                    st.image(img_path, width=550)
+                    col_l, col_c, col_r = st.columns([0.5, 9, 0.5])
+                    with col_c:
+                        st.image(img_path, use_container_width=True)
 
     if content_buffer:
         render_blog_preview("\n".join(content_buffer))

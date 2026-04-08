@@ -539,13 +539,27 @@ with st.sidebar:
         company["topics"] = [t for t in company.get("topics", []) if t["id"] != topic_id]
         save_company(st.session_state.current_company, company)
 
+    # Apple 스타일 삭제 버튼: 존재하되 주장하지 않는 연한 회색 ×
+    st.markdown("""<style>
+    button[kind="secondary"][data-testid="stBaseButton-secondary"]:has(> div > p:only-child) {
+        all: unset;
+    }
+    .del-btn button {
+        background: none !important; border: none !important; box-shadow: none !important;
+        color: #d2d2d7 !important; font-size: 13px !important; padding: 0 !important;
+        min-height: 0 !important; height: auto !important; line-height: 1 !important;
+        cursor: pointer !important; opacity: 0.5 !important; transition: opacity 0.2s !important;
+    }
+    .del-btn button:hover { opacity: 1 !important; color: #6e6e73 !important; }
+    </style>""", unsafe_allow_html=True)
+
     topic_container = st.container(height=520)
     with topic_container:
         # ── 미작성 주제 (삭제 가능) ──
         if undone_naver:
             st.caption(f"📝 네이버 미작성 ({len(undone_naver)}개)")
             for t in undone_naver[:10]:
-                col_topic, col_del = st.columns([9, 1])
+                col_topic, col_del = st.columns([14, 1])
                 with col_topic:
                     is_sel = st.session_state.selected_id == t["id"]
                     ai_badge = " 💡" if t.get("source") == "ai" else ""
@@ -555,15 +569,16 @@ with st.sidebar:
                         st.session_state.selected_id = t["id"]
                         st.rerun()
                 with col_del:
-                    if st.button("✕", key=f"del_{t['id']}", help="이 주제 삭제"):
-                        _delete_topic(t["id"])
-                        st.rerun()
+                    with st.container():
+                        if st.button("×", key=f"del_{t['id']}"):
+                            _delete_topic(t["id"])
+                            st.rerun()
 
         if undone_wp:
             st.divider()
             st.caption(f"🌐 워드프레스 미작성 ({len(undone_wp)}개)")
             for t in undone_wp[:10]:
-                col_topic, col_del = st.columns([9, 1])
+                col_topic, col_del = st.columns([14, 1])
                 with col_topic:
                     is_sel = st.session_state.selected_id == t["id"]
                     ai_badge = " 💡" if t.get("source") == "ai" else ""
@@ -573,9 +588,10 @@ with st.sidebar:
                         st.session_state.selected_id = t["id"]
                         st.rerun()
                 with col_del:
-                    if st.button("✕", key=f"del_{t['id']}", help="이 주제 삭제"):
-                        _delete_topic(t["id"])
-                        st.rerun()
+                    with st.container():
+                        if st.button("×", key=f"del_{t['id']}"):
+                            _delete_topic(t["id"])
+                            st.rerun()
 
         # ── 작성 완료 (삭제 불가, 영구 보관) ──
         if done_topics:

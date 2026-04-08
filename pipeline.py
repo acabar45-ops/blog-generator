@@ -365,3 +365,62 @@ def run_pipeline(
         "qa_report": outputs.get("qa_auditor", ""),
         "agent_outputs": outputs,
     }
+
+
+# ================================================================
+#  주제 생성 (파이프라인 밖 독립 실행)
+# ================================================================
+def generate_topic(company_id: str = "houseman", existing_titles: list = None) -> dict:
+    """
+    AI로 새 블로그 주제 1개 생성.
+    Returns: {"title": str, "category": str, "platform": str} or None
+    """
+    import json
+    from agents import TOPIC_GENERATOR
+    from datetime import datetime
+
+    company_info = get_company_info_prompt(company_id)
+    existing = existing_titles or []
+    existing_text = "\n".join(f"- {t}" for t in existing[-50:])  # 최근 50개만
+
+    now = datetime.now()
+    month_name = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"][now.month - 1]
+    season_hint = {1:"겨울",2:"겨울",3:"봄",4:"봄",5:"봄",6:"여름",7:"여름",8:"여름",9:"가을",10:"가을",11:"가을",12:"겨울"}[now.month]
+
+    prompt = f"""[회사 정보]
+{company_info}
+
+[현재 시기] {now.year}년 {month_name} ({season_hint})
+
+[기존 주제 목록 — 이것들과 중복되지 않게]
+{existing_text if existing_text else "(없음)"}
+
+위 정보를 바탕으로 새 블로그 주제 1개를 JSON으로 출력하세요."""
+
+    agent = TOPIC_GENERATOR
+    for attempt in range(3):
+        try:
+            msg = _client().messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=agent["max_tokens"],
+                system=agent["system_prompt"],
+                messages=[{"role": "user", "content": prompt}],
+            )
+            response = msg.content[0].text.strip()
+            # JSON 추출
+            if "```" in response:
+                response = response.split("```")[1]
+                if response.startswith("json"):
+                    response = response[4:]
+                response = response.strip()
+            result = json.loads(response)
+            if "title" in result and "category" in result and "platform" in result:
+                return result
+        except (json.JSONDecodeError, Exception) as e:
+            if "529" in str(e) or "overloaded" in str(e).lower():
+                time.sleep(10 * (attempt + 1))
+            elif isinstance(e, json.JSONDecodeError):
+                continue
+            else:
+                raise
+    return None

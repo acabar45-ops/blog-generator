@@ -131,7 +131,9 @@ def get_current_company():
         return get_or_create_default_company()
 
 def get_topics():
-    return get_current_company().get("topics", [])
+    base = get_current_company().get("topics", [])
+    ai = st.session_state.get("ai_topics", [])
+    return base + ai
 
 if "blogs" not in st.session_state:
     st.session_state.blogs = load_blogs(st.session_state.current_company)
@@ -479,7 +481,6 @@ with st.sidebar:
     st.divider()
 
     # 검색 + 필터
-    import random
     TOPICS = get_topics()
     TOTAL = len(TOPICS)
 
@@ -492,77 +493,66 @@ with st.sidebar:
     st.caption(f"완료 {dc}/{TOTAL}")
     st.divider()
 
-    # 랜덤 추천 주제 (미생성 중 네이버 10 + 워드프레스 10)
-    def _pick_random_topics():
-        all_naver = [t for t in TOPICS if t.get("platform") == "naver" and not is_done(t["id"])]
-        all_wp = [t for t in TOPICS if t.get("platform") == "wordpress" and not is_done(t["id"])]
-        random.shuffle(all_naver)
-        random.shuffle(all_wp)
-        return all_naver[:10], all_wp[:10]
+    # ── AI 주제 생성 ──
+    if "ai_topics" not in st.session_state:
+        st.session_state.ai_topics = []
 
-    if "rand_naver" not in st.session_state or "rand_wp" not in st.session_state:
-        st.session_state.rand_naver, st.session_state.rand_wp = _pick_random_topics()
+    gen_col1, gen_col2 = st.columns([3, 1])
+    with gen_col1:
+        st.markdown("##### 💡 AI 주제 생성")
+    with gen_col2:
+        gen_topic_btn = st.button("✨ 새 주제 만들기", type="primary", use_container_width=True)
 
-    def _replace_one_topic(platform, index):
-        """특정 주제 1개를 다른 주제로 교체"""
-        current_list = st.session_state.rand_naver if platform == "naver" else st.session_state.rand_wp
-        current_ids = {t["id"] for t in current_list}
-        pool = [t for t in TOPICS if t.get("platform") == platform and not is_done(t["id"]) and t["id"] not in current_ids]
-        if pool:
-            random.shuffle(pool)
-            current_list[index] = pool[0]
-
-    if st.button("🔄 전체 새로고침", use_container_width=True):
-        st.session_state.rand_naver, st.session_state.rand_wp = _pick_random_topics()
-        st.rerun()
+    if gen_topic_btn:
+        if not check_api_key():
+            st.stop()
+        with st.spinner("💡 주제발굴사가 새 주제를 찾고 있습니다..."):
+            existing_titles = [t["title"] for t in TOPICS]
+            existing_titles += [t["title"] for t in st.session_state.ai_topics]
+            result = pipeline.generate_topic(cid, existing_titles)
+            if result:
+                new_id = max([t["id"] for t in TOPICS] + [t["id"] for t in st.session_state.ai_topics], default=0) + 1
+                result["id"] = new_id
+                result["source"] = "ai"
+                st.session_state.ai_topics.append(result)
+                st.rerun()
+            else:
+                st.error("주제 생성에 실패했습니다. 다시 시도해주세요.")
 
     topic_container = st.container(height=520)
     with topic_container:
-        # 네이버 추천
-        if st.session_state.rand_naver:
-            st.caption(f"📝 네이버 블로그 ({len(st.session_state.rand_naver)}개)")
-            for i, t in enumerate(st.session_state.rand_naver):
-                col_topic, col_btn = st.columns([8, 1])
-                with col_topic:
-                    done_icon = "✅" if is_done(t["id"]) else "⬜"
-                    label = f'{done_icon} {t["title"]}'
-                    is_sel = st.session_state.selected_id == t["id"]
-                    if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
-                                 type="primary" if is_sel else "secondary"):
-                        st.session_state.selected_id = t["id"]
-                        st.session_state.page = "main"
-                        st.rerun()
-                with col_btn:
-                    if st.button("🔄", key=f"refresh_{t['id']}"):
-                        _replace_one_topic("naver", i)
-                        st.rerun()
+        # AI 생성 주제 표시
+        ai_topics = st.session_state.ai_topics
+        if ai_topics:
+            st.caption(f"💡 AI 생성 주제 ({len(ai_topics)}개)")
+            for i, t in enumerate(ai_topics):
+                platform_icon = "📝" if t.get("platform") == "naver" else "🌐"
+                done_icon = "✅" if is_done(t["id"]) else "⬜"
+                label = f'{done_icon} {platform_icon} {t["title"]}'
+                is_sel = st.session_state.selected_id == t["id"]
+                if st.button(label, key=f"ai_topic_{t['id']}", use_container_width=True,
+                             type="primary" if is_sel else "secondary"):
+                    st.session_state.selected_id = t["id"]
+                    st.session_state.page = "main"
+                    st.rerun()
+        else:
+            st.info("✨ '새 주제 만들기' 버튼을 눌러 주제를 생성하세요.")
 
-        st.divider()
+        # 기존 주제 중 완료된 것만 표시
+        done_topics = [t for t in TOPICS if is_done(t["id"])]
+        if done_topics:
+            st.divider()
+            st.caption(f"✅ 완료된 주제 ({len(done_topics)}개)")
+            for t in done_topics:
+                platform_icon = "📝" if t.get("platform") == "naver" else "🌐"
+                label = f'✅ {platform_icon} {t["title"]}'
+                is_sel = st.session_state.selected_id == t["id"]
+                if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
+                             type="primary" if is_sel else "secondary"):
+                    st.session_state.selected_id = t["id"]
+                    st.session_state.page = "main"
+                    st.rerun()
 
-        # 워드프레스 추천
-        if st.session_state.rand_wp:
-            st.caption(f"🌐 워드프레스 ({len(st.session_state.rand_wp)}개)")
-            for i, t in enumerate(st.session_state.rand_wp):
-                col_topic, col_btn = st.columns([8, 1])
-                with col_topic:
-                    done_icon = "✅" if is_done(t["id"]) else "⬜"
-                    label = f'{done_icon} {t["title"]}'
-                    is_sel = st.session_state.selected_id == t["id"]
-                    if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
-                                 type="primary" if is_sel else "secondary"):
-                        st.session_state.selected_id = t["id"]
-                        st.session_state.page = "main"
-                        st.rerun()
-                with col_btn:
-                    if st.button("🔄", key=f"refresh_{t['id']}"):
-                        _replace_one_topic("wordpress", i)
-                        st.rerun()
-
-    st.divider()
-
-    # 전체 진행
-    if TOTAL > 0:
-        st.progress(dc / TOTAL, text=f"진행: {dc}/{TOTAL}")
 
 
 # ═══════════════════════════════════════════════

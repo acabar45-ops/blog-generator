@@ -29,6 +29,7 @@ def generate_image(prompt: str, filename: str = "image") -> dict:
         return {"success": False, "error": "Gemini API 키가 설정되지 않았습니다."}
 
     try:
+        print(f"[Gemini] Generating image with prompt: {prompt[:80]}...")
         url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-ultra-generate-001:predict?key={GEMINI_API_KEY}"
 
         headers = {"Content-Type": "application/json"}
@@ -45,7 +46,9 @@ def generate_image(prompt: str, filename: str = "image") -> dict:
 
         response = requests.post(url, headers=headers, json=payload, timeout=120)
 
+        print(f"[Gemini] Response status: {response.status_code}")
         if response.status_code != 200:
+            print(f"[Gemini] ERROR: {response.text[:500]}")
             return {"success": False, "error": f"API 오류 ({response.status_code}): {response.text[:200]}"}
 
         result = response.json()

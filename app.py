@@ -1,6 +1,5 @@
 import os
 import streamlit as st
-from config import APP_PASSWORD
 
 # ── 페이지 설정 (반드시 최상단 1회) ──
 st.set_page_config(
@@ -13,7 +12,11 @@ st.set_page_config(
 # ── 비밀번호 보호 ──
 def _check_password():
     """비밀번호가 설정되어 있으면 로그인 화면을 표시"""
-    if not APP_PASSWORD:
+    try:
+        app_pw = st.secrets["APP_PASSWORD"]
+    except (KeyError, FileNotFoundError):
+        app_pw = ""
+    if not app_pw:
         return True
     if st.session_state.get("authenticated"):
         return True
@@ -24,7 +27,7 @@ def _check_password():
         st.title("🔒 블로그 자동화 로그인")
         pwd = st.text_input("비밀번호를 입력하세요", type="password", key="login_pwd")
         if st.button("로그인", use_container_width=True):
-            if pwd == APP_PASSWORD:
+            if pwd == app_pw:
                 st.session_state["authenticated"] = True
                 st.rerun()
             else:
@@ -33,6 +36,8 @@ def _check_password():
 
 if not _check_password():
     st.stop()
+
+from config import APP_PASSWORD
 
 from agents import AGENTS, CUSTOM_AGENT
 from storage import load_blogs, save_blog

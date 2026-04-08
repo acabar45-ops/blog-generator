@@ -494,15 +494,7 @@ with st.sidebar:
     st.divider()
 
     # ── AI 주제 생성 ──
-    st.markdown("""<div style="background:linear-gradient(135deg,#1a1a2e,#16213e);
-        border-radius:16px;padding:20px 24px;margin:8px 0 16px 0;
-        border:1px solid rgba(0,113,227,0.2);">
-        <div style="color:#999;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">AI TOPIC GENERATOR</div>
-        <div style="color:#f0f0f0;font-size:15px;font-weight:500;">
-            주제발굴사가 회사정보와 계절을 분석해서<br>새로운 블로그 주제를 제안합니다.
-        </div>
-    </div>""", unsafe_allow_html=True)
-    gen_topic_btn = st.button("💡 새 주제 만들기", type="primary", use_container_width=True)
+    gen_topic_btn = st.button("💡 새 주제", use_container_width=True)
 
     if gen_topic_btn:
         if not check_api_key():

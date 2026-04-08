@@ -853,107 +853,89 @@ if blog_content:
     # ── 이미지 배치 ──
     st.markdown("###### 📷 이미지 배치")
 
-    if blog.get("naver_images"):
-        with st.expander("📋 이미지 배치 계획 보기", expanded=not bool(naver_img_paths)):
-            st.markdown(blog["naver_images"])
+    if blog.get(img_key):
+        with st.expander("📋 이미지 배치 계획 보기", expanded=not bool(img_paths)):
+            st.markdown(blog[img_key])
 
-        if naver_img_paths:
-            st.success(f"✅ 이미지 {len(naver_img_paths)}장 생성 완료")
+        if img_paths:
+            st.success(f"✅ 이미지 {len(img_paths)}장 생성 완료")
 
-            # ZIP 다운로드 버튼
             import zipfile, io
             zip_buf = io.BytesIO()
             with zipfile.ZipFile(zip_buf, "w") as zf:
-                for img_path in naver_img_paths:
+                for p in img_paths:
                     from pathlib import Path as _P
-                    zf.write(img_path, _P(img_path).name)
+                    zf.write(p, _P(p).name)
             zip_buf.seek(0)
             st.download_button(
                 "📥 전체 이미지 다운로드 (ZIP)",
                 data=zip_buf.getvalue(),
-                file_name=f"topic_{topic['id']:03d}_naver_images.zip",
+                file_name=f"topic_{topic['id']:03d}_{platform_for_img}_images.zip",
                 mime="application/zip",
                 use_container_width=True,
+                key="dl_images",
             )
 
-            naver_prompts = gemini_client.parse_image_prompts(blog["naver_images"])
-            for img_i, img_path in enumerate(naver_img_paths):
+            prompts = gemini_client.parse_image_prompts(blog[img_key])
+            for img_i, img_path in enumerate(img_paths):
                 col_img, col_btn = st.columns([4, 1])
                 with col_img:
                     st.image(img_path, caption=f"이미지 {img_i+1}", width=385)
                 with col_btn:
-                    st.write("")
-                    st.write("")
-                    if st.button("🔄", key=f"regen_naver_img_{img_i}", help=f"이미지 {img_i+1} 다시 만들기"):
+                    st.write(""); st.write("")
+                    if st.button("🔄", key=f"regen_img_{img_i}", help=f"이미지 {img_i+1} 다시 만들기"):
                         if not gemini_client.is_authenticated():
                             st.warning("Gemini API 키 필요")
-                        elif img_i < len(naver_prompts):
+                        elif img_i < len(prompts):
                             with st.spinner(f"이미지 {img_i+1} 재생성 중..."):
                                 result = gemini_client.regenerate_single_image(
-                                    naver_prompts[img_i], topic["id"], "naver", img_i + 1)
+                                    prompts[img_i], topic["id"], platform_for_img, img_i + 1)
                             if result["success"]:
                                 st.success("✅ 재생성 완료!")
                             else:
                                 st.error(f"실패: {result['error']}")
                             st.rerun()
-                        else:
-                            st.warning("프롬프트를 찾을 수 없습니다.")
 
-            if st.button("🔄 전체 이미지 재생성", use_container_width=True, key="gen_all_img_naver"):
+            if st.button("🔄 전체 이미지 재생성", use_container_width=True, key="gen_all_img"):
                 if not gemini_client.is_authenticated():
                     st.warning("Gemini API 키가 필요합니다.")
                 else:
                     with st.spinner("전체 이미지 재생성 중..."):
-                        results = gemini_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
+                        results = gemini_client.generate_blog_images(blog[img_key], topic["id"], platform_for_img)
                     ok = sum(1 for r in results if r["success"])
                     if ok:
                         st.success(f"✅ {ok}장 재생성 완료")
                     st.rerun()
         else:
-            if st.button("🖼️ AI 이미지 생성", use_container_width=True, type="primary", key="gen_img_naver"):
+            if st.button("🖼️ AI 이미지 생성", use_container_width=True, type="primary", key="gen_img"):
                 if not gemini_client.is_authenticated():
                     st.warning("Gemini API 키가 필요합니다.")
                 else:
                     with st.status("🖼️ AI가 이미지를 생성하고 있습니다...", expanded=True) as img_s:
-                        st.write("🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원의 콘텐츠 합의 기반...")
-                        st.write("🎨 아트디렉션 자문위원의 프롬프트로 이미지 생성 중...")
-                        results = gemini_client.generate_blog_images(blog["naver_images"], topic["id"], "naver")
+                        results = gemini_client.generate_blog_images(blog[img_key], topic["id"], platform_for_img)
                         img_s.update(label="✅ 이미지 생성 완료!", state="complete")
                     ok = sum(1 for r in results if r["success"])
-                    fail = sum(1 for r in results if not r["success"])
                     if ok:
                         st.success(f"✅ {ok}장 생성 완료")
-                    if fail:
-                        for r in results:
-                            if not r["success"]:
-                                st.error(f"실패: {r['error']}")
                     st.rerun()
 
-        if st.button("🔄 이미지 계획 재생성", use_container_width=True, key="regen_img_naver"):
+        if st.button("🔄 이미지 계획 재생성", use_container_width=True, key="regen_img_plan"):
             if check_api_key():
-                with st.status("🎬 네이버 이미지 팀 재협업...", expanded=True) as s:
-                    st.markdown("""<div class="collab-step"><div class="step-label">STEP 1</div>
-                    <div class="step-desc">🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원 콘텐츠 회의 중...</div>
-                    <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
-                    agent_prompts = ""
-                    def naver_regen_cb(msg):
+                with st.status("🎬 이미지 계획 재생성 중...", expanded=True) as s:
+                    def _img_cb(msg):
                         st.write(msg)
-                    img_plan = gen.generate_image_plan(blog_content, platform_for_img, agent_prompts, cid, status_callback=naver_regen_cb)
-                    update_blog(topic["id"], naver_images=img_plan)
+                    img_plan = gen.generate_image_plan(blog_content, platform_for_img, "", cid, status_callback=_img_cb)
+                    update_blog(topic["id"], **{img_key: img_plan})
                     s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
                 st.rerun()
     else:
-        if st.button("📷 이미지 배치 계획 생성", use_container_width=True, type="primary", key="img_plan_naver"):
+        if st.button("📷 이미지 배치 계획 생성", use_container_width=True, type="primary", key="img_plan"):
             if check_api_key():
-                with st.status("🎬 네이버 이미지 팀 협업 시작...", expanded=True) as s:
-                    st.markdown("""<div class="collab-step"><div class="step-label">STEP 1 · 콘텐츠 회의</div>
-                    <div class="step-desc">🏢 현장콘텐츠 자문위원 + 💡 크리에이티브 자문위원이 소제목별 이미지를 논의합니다</div>
-                    <div class="collab-progress"><div class="bar"></div></div></div>""", unsafe_allow_html=True)
-                    agent_prompts = ""
-                    def naver_cb(msg):
+                with st.status("🎬 이미지 계획 생성 중...", expanded=True) as s:
+                    def _img_plan_cb(msg):
                         st.write(msg)
-                    img_plan = gen.generate_image_plan(blog_content, platform_for_img, agent_prompts, cid, status_callback=naver_cb)
-                    update_blog(topic["id"], naver_images=img_plan)
+                    img_plan = gen.generate_image_plan(blog_content, platform_for_img, "", cid, status_callback=_img_plan_cb)
+                    update_blog(topic["id"], **{img_key: img_plan})
                     s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
                 st.rerun()
 else:

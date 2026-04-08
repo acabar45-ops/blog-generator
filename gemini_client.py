@@ -1,6 +1,7 @@
 """
-Gemini (나노바나나) API 연동 — 이미지 생성
+Gemini (나노바나나) API 연동 — 이미지 생성 (Imagen 4 Ultra)
 """
+import re
 import requests
 import base64
 import json
@@ -12,16 +13,40 @@ IMAGE_DIR = Path(__file__).parent / "data" / "images"
 IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def generate_image(prompt: str, filename: str = "image") -> dict:
+VALID_RATIOS = {"16:9", "4:3", "1:1", "3:4", "9:16"}
+
+
+def _detect_aspect_ratio(prompt: str) -> str:
+    """프롬프트에서 종횡비 태그를 감지. 기본값 16:9."""
+    # 한글: 종횡비: X:Y
+    match = re.search(r'종횡비\s*[:：]\s*(\d+:\d+)', prompt)
+    if match and match.group(1) in VALID_RATIOS:
+        return match.group(1)
+    # 영문: aspect_ratio: X:Y
+    match = re.search(r'aspect.?ratio\s*[:：]\s*(\d+:\d+)', prompt, re.IGNORECASE)
+    if match and match.group(1) in VALID_RATIOS:
+        return match.group(1)
+    return "16:9"
+
+
+def _clean_ratio_tag(prompt: str) -> str:
+    """프롬프트에서 종횡비 태그를 제거 (API에 전달 불필요)."""
+    prompt = re.sub(r'종횡비\s*[:：]\s*\d+:\d+\s*', '', prompt)
+    prompt = re.sub(r'aspect.?ratio\s*[:：]\s*\d+:\d+\s*', '', prompt, flags=re.IGNORECASE)
+    return prompt.strip()
+
+
+def generate_image(prompt: str, filename: str = "image", aspect_ratio: str = None) -> dict:
     """
-    Gemini API로 이미지 생성
+    Gemini API로 이미지 생성 (Imagen 4 Ultra)
 
     Args:
         prompt: 이미지 생성 프롬프트 (영문)
         filename: 저장할 파일명 (확장자 제외)
+        aspect_ratio: 종횡비 (16:9/4:3/1:1/3:4/9:16). None이면 프롬프트에서 자동 감지.
 
     Returns:
-        {"success": True, "path": "저장경로", "prompt": "사용된 프롬프트"}
+        {"success": True, "path": "저장경로", "prompt": "사용된 프롬프트", "aspect_ratio": "비율"}
         또는
         {"success": False, "error": "에러메시지"}
     """
@@ -29,18 +54,22 @@ def generate_image(prompt: str, filename: str = "image") -> dict:
         return {"success": False, "error": "Gemini API 키가 설정되지 않았습니다."}
 
     try:
-        print(f"[Gemini] Generating image with prompt: {prompt[:80]}...")
+        # 종횡비 결정: 명시적 인자 > 프롬프트 감지 > 기본값
+        ratio = aspect_ratio or _detect_aspect_ratio(prompt)
+        clean_prompt = _clean_ratio_tag(prompt)
+
+        print(f"[Gemini] Generating image ({ratio}): {clean_prompt[:80]}...")
         url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-ultra-generate-001:predict?key={GEMINI_API_KEY}"
 
         headers = {"Content-Type": "application/json"}
 
         payload = {
             "instances": [
-                {"prompt": prompt}
+                {"prompt": clean_prompt}
             ],
             "parameters": {
                 "sampleCount": 1,
-                "aspectRatio": "16:9"
+                "aspectRatio": ratio
             }
         }
 
@@ -86,6 +115,7 @@ def generate_image(prompt: str, filename: str = "image") -> dict:
             "success": True,
             "path": str(save_path),
             "prompt": prompt,
+            "aspect_ratio": ratio,
             "mime_type": mime_type,
         }
 

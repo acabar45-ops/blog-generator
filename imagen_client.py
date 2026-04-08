@@ -140,16 +140,32 @@ def is_authenticated() -> bool:
     return _authenticated and _credentials is not None
 
 
-def generate_image(prompt: str, filename: str) -> dict:
+def _detect_aspect_ratio(prompt: str) -> str:
+    """프롬프트 또는 메타데이터에서 종횡비를 감지. 기본값 4:3."""
+    valid_ratios = {"16:9", "4:3", "3:2", "1:1", "9:16", "3:4", "2:3"}
+    # 프롬프트 앞부분에서 [종횡비: X:Y] 또는 종횡비 태그 검색
+    match = re.search(r'종횡비\s*[:：]\s*(\d+:\d+)', prompt)
+    if match and match.group(1) in valid_ratios:
+        return match.group(1)
+    # 영문 태그: aspect_ratio: X:Y
+    match = re.search(r'aspect.?ratio\s*[:：]\s*(\d+:\d+)', prompt, re.IGNORECASE)
+    if match and match.group(1) in valid_ratios:
+        return match.group(1)
+    return "4:3"
+
+
+def generate_image(prompt: str, filename: str, aspect_ratio: str = None) -> dict:
     """
     Generate a single image using Imagen 3 and save it as PNG.
 
     Args:
-        prompt:   Text prompt for image generation.
-        filename: Base filename (without extension).
+        prompt:       Text prompt for image generation.
+        filename:     Base filename (without extension).
+        aspect_ratio: Optional aspect ratio override (e.g. "16:9", "4:3", "3:2", "1:1").
+                      If None, auto-detected from prompt or defaults to "4:3".
 
     Returns:
-        {"success": True, "path": "<saved path>", "prompt": "<prompt used>"}
+        {"success": True, "path": "<saved path>", "prompt": "<prompt used>", "aspect_ratio": "<ratio>"}
         or {"success": False, "error": "<message>"}
     """
     if not is_authenticated():
@@ -159,8 +175,15 @@ def generate_image(prompt: str, filename: str) -> dict:
         # Ensure output directory exists
         os.makedirs(IMAGES_DIR, exist_ok=True)
 
+        # 종횡비 결정: 명시적 인자 > 프롬프트 감지 > 기본값
+        ratio = aspect_ratio or _detect_aspect_ratio(prompt)
+
         # 프롬프트 자동 보강: 한국 배경 + 금지사항 suffix
         enhanced_prompt = prompt.strip()
+        # 종횡비 태그는 프롬프트에서 제거 (Imagen에 전달 불필요)
+        enhanced_prompt = re.sub(r'종횡비\s*[:：]\s*\d+:\d+\s*', '', enhanced_prompt)
+        enhanced_prompt = re.sub(r'aspect.?ratio\s*[:：]\s*\d+:\d+\s*', '', enhanced_prompt, flags=re.IGNORECASE)
+
         # Seoul 언급이 없으면 자동 추가
         if "seoul" not in enhanced_prompt.lower() and "south korea" not in enhanced_prompt.lower():
             enhanced_prompt += ", Seoul, South Korea"
@@ -174,7 +197,7 @@ def generate_image(prompt: str, filename: str) -> dict:
         # negative_prompt: 핵심 금지만 (너무 광범위하면 프롬프트와 충돌)
         negative_prompt = "close-up face, portrait, headshot, foreign western architecture, European building, American building"
 
-        print(f"[Imagen] Prompt: {enhanced_prompt[:150]}...")
+        print(f"[Imagen] Prompt ({ratio}): {enhanced_prompt[:150]}...")
 
         model = ImageGenerationModel.from_pretrained(MODEL_NAME)
 
@@ -182,7 +205,7 @@ def generate_image(prompt: str, filename: str) -> dict:
             prompt=enhanced_prompt,
             negative_prompt=negative_prompt,
             number_of_images=1,
-            aspect_ratio="4:3",
+            aspect_ratio=ratio,
         )
 
         if not response.images:
@@ -192,8 +215,8 @@ def generate_image(prompt: str, filename: str) -> dict:
         save_path = os.path.join(IMAGES_DIR, f"{filename}.png")
         response.images[0].save(save_path)
 
-        print(f"[Imagen] Saved: {save_path}")
-        return {"success": True, "path": save_path, "prompt": prompt}
+        print(f"[Imagen] Saved ({ratio}): {save_path}")
+        return {"success": True, "path": save_path, "prompt": prompt, "aspect_ratio": ratio}
 
     except Exception as e:
         error_msg = str(e)

@@ -39,6 +39,8 @@ from company_manager import (
     get_or_create_default_company, generate_topics_for_company,
 )
 import generator as gen
+import pipeline
+from config import PIPELINE_ENABLED
 import gemini_client
 from config import CLAUDE_API_KEY
 
@@ -312,38 +314,44 @@ def _parse_image_layouts(image_plan):
             layouts.append("full")  # 기본값
     return layouts
 
-# ── Apple 미학 CSS (블로그 미리보기 전용) ──
+# ── Apple 미학 CSS (블로그 미리보기 전용 — apple.com/kr 실측 기반) ──
 APPLE_BLOG_CSS = """
 <style>
   .apple-blog { font-family: -apple-system, 'Apple SD Gothic Neo', 'Pretendard', 'Noto Sans KR', sans-serif;
-    max-width: 680px; margin: 0 auto; padding: 20px 16px; line-height: 1.9;
-    color: #1d1d1f; font-size: 15px; letter-spacing: -0.022em;
+    max-width: 680px; margin: 0 auto; padding: 32px 20px; line-height: 1.7;
+    color: #1d1d1f; font-size: 17px; letter-spacing: -0.022em;
     -webkit-font-smoothing: antialiased; }
-  .apple-blog h1 { font-size: 32px; font-weight: 700; margin: 40px 0 16px; color: #1d1d1f;
-    letter-spacing: -0.03em; line-height: 1.25; }
-  .apple-blog h2 { font-size: 24px; font-weight: 600; margin: 36px 0 12px; color: #1d1d1f;
-    letter-spacing: -0.02em; line-height: 1.3; }
-  .apple-blog h3 { font-size: 19px; font-weight: 600; margin: 28px 0 8px; color: #1d1d1f;
-    letter-spacing: -0.01em; line-height: 1.35; }
-  .apple-blog p { margin: 14px 0; color: #1d1d1f; font-size: 15px; }
-  .apple-blog li { margin: 8px 0 8px 24px; color: #1d1d1f; font-size: 15px; }
+  .apple-blog h1 { font-size: 44px; font-weight: 700; margin: 56px 0 20px; color: #1d1d1f;
+    letter-spacing: -0.03em; line-height: 1.15; }
+  .apple-blog h2 { font-size: 32px; font-weight: 600; margin: 64px 0 16px; color: #1d1d1f;
+    letter-spacing: -0.02em; line-height: 1.25; }
+  .apple-blog h3 { font-size: 24px; font-weight: 600; margin: 40px 0 12px; color: #1d1d1f;
+    letter-spacing: -0.01em; line-height: 1.3; }
+  .apple-blog p { margin: 18px 0; color: #1d1d1f; font-size: 17px; line-height: 1.7; }
+  .apple-blog li { margin: 10px 0 10px 24px; color: #1d1d1f; font-size: 17px; line-height: 1.7; }
   .apple-blog strong { color: #1d1d1f; font-weight: 600; }
-  .apple-blog blockquote { border-left: 3px solid #d2d2d7; margin: 20px 0; padding: 0 16px; color: #6e6e73; }
-  .apple-blog hr { border: none; border-top: 1px solid #d2d2d7; margin: 32px 0; }
-  .apple-blog img { border-radius: 12px; display: block; margin: 24px auto; }
+  .apple-blog blockquote { border-left: 3px solid #0071e3; margin: 32px 0; padding: 12px 24px;
+    color: #6e6e73; font-size: 16px; line-height: 1.6;
+    background: #f5f5f7; border-radius: 0 8px 8px 0; }
+  .apple-blog hr { border: none; border-top: 1px solid #d2d2d7; margin: 48px 0; }
+  .apple-blog img { border-radius: 12px; display: block; margin: 32px auto;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+  .apple-blog a { color: #0071e3; text-decoration: none; }
+  .apple-blog a:hover { text-decoration: underline; }
 </style>
 """
 
 def _md_to_preview_html(text):
     """마크다운 → 인라인 스타일 HTML (Streamlit 미리보기 전용)"""
     import re as _re
-    S_H1 = 'style="font-size:32px !important;font-weight:700 !important;margin:40px 0 16px !important;color:#1d1d1f;letter-spacing:-0.03em;line-height:1.25 !important;"'
-    S_H2 = 'style="font-size:24px !important;font-weight:600 !important;margin:36px 0 12px !important;color:#1d1d1f;letter-spacing:-0.02em;line-height:1.3 !important;"'
-    S_H3 = 'style="font-size:19px !important;font-weight:600 !important;margin:28px 0 8px !important;color:#1d1d1f;letter-spacing:-0.01em;line-height:1.35 !important;"'
-    S_P  = 'style="font-size:15px !important;margin:14px 0;color:#1d1d1f;line-height:1.9;"'
-    S_LI = 'style="font-size:15px !important;margin:8px 0 8px 24px;color:#1d1d1f;line-height:1.9;"'
-    S_BQ = 'style="border-left:3px solid #d2d2d7;margin:20px 0;padding:0 16px;color:#6e6e73;"'
-    S_HR = 'style="border:none;border-top:1px solid #d2d2d7;margin:32px 0;"'
+    # Apple.com 실측 기반 인라인 스타일 (APPLE_BLOG_CSS와 동일 수치)
+    S_H1 = 'style="font-size:44px !important;font-weight:700 !important;margin:56px 0 20px !important;color:#1d1d1f;letter-spacing:-0.03em;line-height:1.15 !important;"'
+    S_H2 = 'style="font-size:32px !important;font-weight:600 !important;margin:64px 0 16px !important;color:#1d1d1f;letter-spacing:-0.02em;line-height:1.25 !important;"'
+    S_H3 = 'style="font-size:24px !important;font-weight:600 !important;margin:40px 0 12px !important;color:#1d1d1f;letter-spacing:-0.01em;line-height:1.3 !important;"'
+    S_P  = 'style="font-size:17px !important;margin:18px 0;color:#1d1d1f;line-height:1.7;"'
+    S_LI = 'style="font-size:17px !important;margin:10px 0 10px 24px;color:#1d1d1f;line-height:1.7;"'
+    S_BQ = 'style="border-left:3px solid #0071e3;margin:32px 0;padding:12px 24px;color:#6e6e73;font-size:16px;line-height:1.6;background:#f5f5f7;border-radius:0 8px 8px 0;"'
+    S_HR = 'style="border:none;border-top:1px solid #d2d2d7;margin:48px 0;"'
     S_B  = 'style="font-weight:600 !important;color:#1d1d1f;"'
 
     def bold(t):
@@ -360,13 +368,14 @@ def _md_to_preview_html(text):
         elif stripped.startswith("# "):
             html_lines.append(f'<div {S_H1}>{bold(stripped[2:])}</div>')
         elif stripped.startswith("> "):
-            html_lines.append(f'<div {S_BQ}><div {S_P}>{bold(stripped[2:])}</div></div>')
+            bq_p = 'style="font-size:16px !important;margin:0;color:#6e6e73;line-height:1.6;"'
+            html_lines.append(f'<div {S_BQ}><div {bq_p}>{bold(stripped[2:])}</div></div>')
         elif stripped == "---":
             html_lines.append(f'<hr {S_HR}>')
         elif stripped.startswith("- "):
             html_lines.append(f'<div {S_LI}>• {bold(stripped[2:])}</div>')
         elif stripped == "":
-            html_lines.append('<div style="height:12px;"></div>')
+            html_lines.append('<div style="height:18px;"></div>')
         else:
             html_lines.append(f'<div {S_P}>{bold(stripped)}</div>')
     return "\n".join(html_lines)
@@ -374,7 +383,7 @@ def _md_to_preview_html(text):
 def render_blog_preview(blog_content):
     """블로그 마크다운을 인라인 스타일 HTML로 미리보기"""
     body = _md_to_preview_html(blog_content)
-    wrapper = f'<div style="font-family:-apple-system,Apple SD Gothic Neo,Pretendard,Noto Sans KR,sans-serif;max-width:680px;margin:0 auto;padding:20px 16px;-webkit-font-smoothing:antialiased;">{body}</div>'
+    wrapper = f'<div style="font-family:-apple-system,Apple SD Gothic Neo,Pretendard,Noto Sans KR,sans-serif;max-width:680px;margin:0 auto;padding:32px 20px;-webkit-font-smoothing:antialiased;letter-spacing:-0.022em;">{body}</div>'
     st.html(wrapper)
 
 def render_blog_with_images(blog_content, image_plan, image_paths, platform="naver"):
@@ -558,27 +567,30 @@ def build_html_with_images(blog_content, image_plan, image_paths, platform="nave
 <title>{title}</title>
 <style>
   body {{ font-family: -apple-system, 'Apple SD Gothic Neo', 'Pretendard', 'Noto Sans KR', sans-serif;
-         max-width: 680px; margin: 0 auto; padding: 40px 24px; line-height: 1.9;
+         max-width: 680px; margin: 0 auto; padding: 40px 24px; line-height: 1.7;
          color: #1d1d1f; background: #fff; font-size: 17px; letter-spacing: -0.022em;
          -webkit-font-smoothing: antialiased; }}
-  h1 {{ font-size: 36px; font-weight: 700; margin: 48px 0 20px; color: #1d1d1f;
-       letter-spacing: -0.03em; line-height: 1.25; }}
-  h2 {{ font-size: 28px; font-weight: 600; margin: 40px 0 16px; color: #1d1d1f;
-       letter-spacing: -0.02em; line-height: 1.3; }}
-  h3 {{ font-size: 22px; font-weight: 600; margin: 32px 0 12px; color: #1d1d1f;
-       letter-spacing: -0.01em; line-height: 1.35; }}
-  p {{ margin: 16px 0; color: #1d1d1f; }}
-  li {{ margin: 10px 0 10px 24px; color: #1d1d1f; }}
+  h1 {{ font-size: 44px; font-weight: 700; margin: 56px 0 20px; color: #1d1d1f;
+       letter-spacing: -0.03em; line-height: 1.15; }}
+  h2 {{ font-size: 32px; font-weight: 600; margin: 64px 0 16px; color: #1d1d1f;
+       letter-spacing: -0.02em; line-height: 1.25; }}
+  h3 {{ font-size: 24px; font-weight: 600; margin: 40px 0 12px; color: #1d1d1f;
+       letter-spacing: -0.01em; line-height: 1.3; }}
+  p {{ margin: 18px 0; color: #1d1d1f; font-size: 17px; line-height: 1.7; }}
+  li {{ margin: 10px 0 10px 24px; color: #1d1d1f; font-size: 17px; line-height: 1.7; }}
   strong {{ color: #1d1d1f; font-weight: 600; }}
-  blockquote {{ border-left: 3px solid #d2d2d7; margin: 24px 0; padding: 0 20px;
-               color: #6e6e73; font-style: normal; }}
-  hr {{ border: none; border-top: 1px solid #d2d2d7; margin: 36px 0; }}
-  img {{ border-radius: 12px; }}
+  blockquote {{ border-left: 3px solid #0071e3; margin: 32px 0; padding: 12px 24px;
+               color: #6e6e73; font-style: normal; font-size: 16px; line-height: 1.6;
+               background: #f5f5f7; border-radius: 0 8px 8px 0; }}
+  hr {{ border: none; border-top: 1px solid #d2d2d7; margin: 48px 0; }}
+  img {{ border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }}
+  a {{ color: #0071e3; text-decoration: none; }}
+  a:hover {{ text-decoration: underline; }}
   @media (max-width: 600px) {{
-    body {{ padding: 24px 16px; font-size: 15px; }}
+    body {{ padding: 24px 16px; font-size: 16px; }}
     img {{ width: 100% !important; }}
-    h1 {{ font-size: 28px; margin: 36px 0 16px; }}
-    h2 {{ font-size: 24px; margin: 32px 0 12px; }}
+    h1 {{ font-size: 32px; margin: 40px 0 16px; }}
+    h2 {{ font-size: 26px; margin: 48px 0 12px; }}
   }}
 </style>
 </head>
@@ -881,14 +893,32 @@ if st.session_state.bulk_running:
     next_topic = next((t for t in TOPICS if not is_done(t["id"])), None)
     if next_topic:
         with st.status(f"⏳ [{next_topic['id']:03d}] {next_topic['title']}", expanded=True) as s:
-            st.write("네이버 블로그 작성 중...")
-            agent_prompts = get_selected_agent_prompts()
-            naver = gen.generate_naver_blog(next_topic["title"], agent_prompts, st.session_state.current_company)
-            footer = gen.generate_blog_footer(naver, st.session_state.current_company)
-            naver = naver + "\n" + footer
-            update_blog(next_topic["id"],
-                        naver=naver, final=naver, wordpress="",
-                        agents=st.session_state.selected_agents)
+            cid = st.session_state.current_company
+            if st.session_state.get("pipeline_mode"):
+                st.write("🍎 Apple 파이프라인 실행 중...")
+                result = pipeline.run_pipeline(
+                    next_topic["title"], cid, "naver",
+                    status_callback=lambda msg: st.write(msg)
+                )
+                naver = result["blog"]
+                footer = gen.generate_blog_footer(naver, cid)
+                naver = naver + "\n" + footer
+                img_prompts = result.get("image_prompts", "")
+                blog_data = dict(naver=naver, final=naver, wordpress="",
+                                 agents=["pipeline_7"],
+                                 qa_score=result.get("qa_score", 0))
+                if img_prompts:
+                    blog_data["naver_images"] = img_prompts
+                update_blog(next_topic["id"], **blog_data)
+            else:
+                st.write("네이버 블로그 작성 중...")
+                agent_prompts = get_selected_agent_prompts()
+                naver = gen.generate_naver_blog(next_topic["title"], agent_prompts, cid)
+                footer = gen.generate_blog_footer(naver, cid)
+                naver = naver + "\n" + footer
+                update_blog(next_topic["id"],
+                            naver=naver, final=naver, wordpress="",
+                            agents=st.session_state.selected_agents)
             s.update(label=f"✅ {next_topic['title']}", state="complete")
         st.rerun()
     else:
@@ -1077,16 +1107,27 @@ else:
                 st.warning("플랫폼을 최소 1개 선택해주세요.")
                 st.stop()
             with st.status("커스텀 주제 작성 중...", expanded=True) as s:
-                agent_prompts = get_selected_agent_prompts()
                 topic_title = st.session_state.custom_topic.strip()
                 results = {}
-                if st.session_state.platform_naver:
-                    st.write("📝 네이버 블로그 작성 중...")
-                    results["naver"] = gen.generate_naver_blog(topic_title, agent_prompts, st.session_state.current_company)
-                if st.session_state.platform_wp:
-                    st.write("🌐 워드프레스 작성 중...")
-                    base = results.get("naver", topic_title)
-                    results["wordpress"] = gen.generate_wordpress_blog(base, topic_title, agent_prompts, st.session_state.current_company)
+                cid = st.session_state.current_company
+                if st.session_state.get("pipeline_mode"):
+                    if st.session_state.platform_naver:
+                        st.write("🍎 파이프라인 — 네이버 생성 중...")
+                        r = pipeline.run_pipeline(topic_title, cid, "naver", status_callback=lambda msg: st.write(msg))
+                        results["naver"] = r["blog"]
+                    if st.session_state.platform_wp:
+                        st.write("🍎 파이프라인 — 워드프레스 생성 중...")
+                        r = pipeline.run_pipeline(topic_title, cid, "wordpress", status_callback=lambda msg: st.write(msg))
+                        results["wordpress"] = r["blog"]
+                else:
+                    agent_prompts = get_selected_agent_prompts()
+                    if st.session_state.platform_naver:
+                        st.write("📝 네이버 블로그 작성 중...")
+                        results["naver"] = gen.generate_naver_blog(topic_title, agent_prompts, cid)
+                    if st.session_state.platform_wp:
+                        st.write("🌐 워드프레스 작성 중...")
+                        base = results.get("naver", topic_title)
+                        results["wordpress"] = gen.generate_wordpress_blog(base, topic_title, agent_prompts, cid)
                 s.update(label="✅ 커스텀 주제 완료!", state="complete")
 
             if results.get("naver"):
@@ -1190,6 +1231,17 @@ else:
                         names.append(a["name"])
             st.caption(f"선택됨: {len(names)}명 — {' + '.join(names)}")
 
+        st.divider()
+        pipeline_on = st.toggle(
+            "🍎 Apple 파이프라인 모드 (23-에이전트)",
+            value=st.session_state.get("pipeline_mode", PIPELINE_ENABLED),
+            key="pipeline_mode",
+            help="23개 전문 에이전트가 Phase 0~8로 실행하여 Apple 미학 수준의 블로그를 생성합니다."
+        )
+        if pipeline_on:
+            st.caption("🍎 파이프라인 모드: 23개 에이전트가 자동 실행됩니다 (에이전트 선택 무시)")
+
+
     # ── 미생성: 둘 다 없을 때 ──
     if not blog.get("final") and not blog.get("wordpress"):
         st.info("아직 생성되지 않은 주제입니다.")
@@ -1202,49 +1254,105 @@ else:
         if do_naver:
             if not check_api_key():
                 st.stop()
-            with st.status("📝 네이버 블로그 생성 중...", expanded=True) as s:
-                agent_prompts = get_selected_agent_prompts()
-                # 에이전트 활동 상태 표시
-                sel_names = []
-                for aid in st.session_state.selected_agents:
-                    a = next((x for x in AGENTS if x["id"] == aid), None)
-                    if a:
-                        sel_names.append(f"{a['icon']} {a['name']}")
-                if sel_names:
-                    st.write(f"🤝 **에이전트 협업 시작**: {' + '.join(sel_names)}")
-                    st.write("📋 각 에이전트가 자신의 전문 분야 관점을 제시하고 있습니다...")
-                    st.write("✍️ 모든 관점을 균형 있게 융합하여 하나의 글로 통합 중...")
-                else:
-                    st.write("✍️ 블로그 글을 작성하고 있습니다...")
-                naver = gen.generate_naver_blog(topic["title"], agent_prompts, cid)
-                footer = gen.generate_blog_footer(naver, cid)
-                naver = naver + "\n" + footer
-                update_blog(topic["id"], naver=naver, final=naver, agents=st.session_state.selected_agents)
-                s.update(label="✅ 네이버 블로그 생성 완료!", state="complete")
-            st.rerun()
+            if st.session_state.get("pipeline_mode"):
+                with st.status("🍎 Apple 파이프라인 — 네이버 블로그 생성 중...", expanded=True) as s:
+                    result = pipeline.run_pipeline(
+                        topic["title"], cid, "naver",
+                        status_callback=lambda msg: st.write(msg)
+                    )
+                    naver = result["blog"]
+                    footer = gen.generate_blog_footer(naver, cid)
+                    naver = naver + "\n" + footer
+                    qa_score = result.get("qa_score", 0)
+                    img_prompts = result.get("image_prompts", "")
+                    blog_data = dict(naver=naver, final=naver,
+                                     agents=["pipeline_7"], qa_score=qa_score)
+                    if img_prompts:
+                        blog_data["naver_images"] = img_prompts
+                    update_blog(topic["id"], **blog_data)
+                    s.update(label=f"✅ 파이프라인 완료! QA {qa_score}/80", state="complete")
+                if result.get("phase8"):
+                    with st.expander("📈 성과 예측 & A/B 변형"):
+                        from agents import get_pipeline_agent as _gpa
+                        for k, v in result["phase8"].items():
+                            agent_info = _gpa(k)
+                            if agent_info:
+                                st.markdown(f"**{agent_info['icon']} {agent_info['name']}**")
+                            st.markdown(v)
+                            st.divider()
+                st.rerun()
+            else:
+                with st.status("📝 네이버 블로그 생성 중...", expanded=True) as s:
+                    agent_prompts = get_selected_agent_prompts()
+                    # 에이전트 활동 상태 표시
+                    sel_names = []
+                    for aid in st.session_state.selected_agents:
+                        a = next((x for x in AGENTS if x["id"] == aid), None)
+                        if a:
+                            sel_names.append(f"{a['icon']} {a['name']}")
+                    if sel_names:
+                        st.write(f"🤝 **에이전트 협업 시작**: {' + '.join(sel_names)}")
+                        st.write("📋 각 에이전트가 자신의 전문 분야 관점을 제시하고 있습니다...")
+                        st.write("✍️ 모든 관점을 균형 있게 융합하여 하나의 글로 통합 중...")
+                    else:
+                        st.write("✍️ 블로그 글을 작성하고 있습니다...")
+                    naver = gen.generate_naver_blog(topic["title"], agent_prompts, cid)
+                    footer = gen.generate_blog_footer(naver, cid)
+                    naver = naver + "\n" + footer
+                    update_blog(topic["id"], naver=naver, final=naver, agents=st.session_state.selected_agents)
+                    s.update(label="✅ 네이버 블로그 생성 완료!", state="complete")
+                st.rerun()
 
         if do_wp:
             if not check_api_key():
                 st.stop()
-            with st.status("🌐 워드프레스 생성 중...", expanded=True) as s:
-                agent_prompts = get_selected_agent_prompts()
-                sel_names = []
-                for aid in st.session_state.selected_agents:
-                    a = next((x for x in AGENTS if x["id"] == aid), None)
-                    if a:
-                        sel_names.append(f"{a['icon']} {a['name']}")
-                if sel_names:
-                    st.write(f"🤝 **에이전트 협업 시작**: {' + '.join(sel_names)}")
-                    st.write("🔍 SEO 구조 설계 + E-E-A-T 전문성 확보 중...")
-                    st.write("📊 각 에이전트가 구글 검색 최적화 관점을 융합하고 있습니다...")
-                else:
-                    st.write("🔍 SEO 최적화 글을 작성하고 있습니다...")
-                wp = gen.generate_wordpress_blog(topic["title"], topic["title"], agent_prompts, cid)
-                footer = gen.generate_blog_footer(wp, cid)
-                wp = wp + "\n" + footer
-                update_blog(topic["id"], wordpress=wp, final=wp, agents=st.session_state.selected_agents)
-                s.update(label="✅ 워드프레스 생성 완료!", state="complete")
-            st.rerun()
+            if st.session_state.get("pipeline_mode"):
+                with st.status("🍎 Apple 파이프라인 — 워드프레스 생성 중...", expanded=True) as s:
+                    result = pipeline.run_pipeline(
+                        topic["title"], cid, "wordpress",
+                        status_callback=lambda msg: st.write(msg)
+                    )
+                    wp = result["blog"]
+                    footer = gen.generate_blog_footer(wp, cid)
+                    wp = wp + "\n" + footer
+                    qa_score = result.get("qa_score", 0)
+                    img_prompts = result.get("image_prompts", "")
+                    blog_data = dict(wordpress=wp, final=wp,
+                                     agents=["pipeline_7"], qa_score=qa_score)
+                    if img_prompts:
+                        blog_data["wp_images"] = img_prompts
+                    update_blog(topic["id"], **blog_data)
+                    s.update(label=f"✅ 파이프라인 완료! QA {qa_score}/80", state="complete")
+                if result.get("phase8"):
+                    with st.expander("📈 성과 예측 & A/B 변형"):
+                        from agents import get_pipeline_agent as _gpa
+                        for k, v in result["phase8"].items():
+                            agent_info = _gpa(k)
+                            if agent_info:
+                                st.markdown(f"**{agent_info['icon']} {agent_info['name']}**")
+                            st.markdown(v)
+                            st.divider()
+                st.rerun()
+            else:
+                with st.status("🌐 워드프레스 생성 중...", expanded=True) as s:
+                    agent_prompts = get_selected_agent_prompts()
+                    sel_names = []
+                    for aid in st.session_state.selected_agents:
+                        a = next((x for x in AGENTS if x["id"] == aid), None)
+                        if a:
+                            sel_names.append(f"{a['icon']} {a['name']}")
+                    if sel_names:
+                        st.write(f"🤝 **에이전트 협업 시작**: {' + '.join(sel_names)}")
+                        st.write("🔍 SEO 구조 설계 + E-E-A-T 전문성 확보 중...")
+                        st.write("📊 각 에이전트가 구글 검색 최적화 관점을 융합하고 있습니다...")
+                    else:
+                        st.write("🔍 SEO 최적화 글을 작성하고 있습니다...")
+                    wp = gen.generate_wordpress_blog(topic["title"], topic["title"], agent_prompts, cid)
+                    footer = gen.generate_blog_footer(wp, cid)
+                    wp = wp + "\n" + footer
+                    update_blog(topic["id"], wordpress=wp, final=wp, agents=st.session_state.selected_agents)
+                    s.update(label="✅ 워드프레스 생성 완료!", state="complete")
+                st.rerun()
         st.stop()
 
     # ── 생성 완료: 탭 ──

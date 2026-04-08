@@ -29,7 +29,7 @@ def generate_image(prompt: str, filename: str = "image") -> dict:
         return {"success": False, "error": "Gemini API 키가 설정되지 않았습니다."}
 
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={GEMINI_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key={GEMINI_API_KEY}"
 
         headers = {"Content-Type": "application/json"}
 

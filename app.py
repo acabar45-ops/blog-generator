@@ -16,8 +16,6 @@ def _check_password():
         app_pw = st.secrets["APP_PASSWORD"]
     except (KeyError, FileNotFoundError):
         app_pw = ""
-    # 디버그: secrets 확인 (배포 후 삭제)
-    st.sidebar.caption(f"[DEBUG] APP_PASSWORD loaded: '{app_pw[:3]}...' (len={len(app_pw)})" if app_pw else "[DEBUG] APP_PASSWORD is EMPTY")
     if not app_pw:
         return True
     if st.session_state.get("authenticated"):

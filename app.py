@@ -259,7 +259,7 @@ def render_blog_preview(blog_content):
     st.html(wrapper)
 
 def render_blog_with_images(blog_content, image_plan, image_paths, platform="naver"):
-    """소제목(##) 바로 아래에 이미지를 배치. 워드프레스는 레이아웃 반영."""
+    """소제목(##) 바로 아래에 이미지를 배치. 위치 필드 매칭 우선, 폴백은 균등 배치."""
     import re as _re
     if not image_paths or not image_plan:
         render_blog_preview(blog_content)
@@ -268,25 +268,65 @@ def render_blog_with_images(blog_content, image_plan, image_paths, platform="nav
     lines = blog_content.split("\n")
     layouts = _parse_image_layouts(image_plan)
 
-    # 소제목 위치 찾기
-    heading_indices = []
+    # 소제목 위치 찾기 (텍스트 포함)
+    headings = []  # [(line_index, heading_text)]
     for li, line in enumerate(lines):
         stripped = line.strip()
         if stripped.startswith("##"):
-            heading_indices.append(li)
+            # ## 제거, 이모지/공백 정리
+            h_text = _re.sub(r'^#+\s*', '', stripped).strip()
+            h_text = _re.sub(r'^[^\w가-힣]+', '', h_text).strip()  # 앞쪽 이모지 제거
+            headings.append((li, h_text))
 
-    # 소제목에 이미지 매핑
+    # 이미지 프롬프트에서 "위치:" 필드 파싱
+    def _parse_image_locations(plan_text):
+        """이미지별 위치 힌트 추출"""
+        locations = []
+        blocks = _re.split(r"(?=(?:#+ *)?(?:\*\*)?📷)", plan_text)
+        for block in blocks:
+            block = block.strip()
+            if not block:
+                continue
+            # 위치: 텍스트 추출
+            match = _re.search(r'위치\s*[:：]\s*(.+)', block)
+            if match:
+                locations.append(match.group(1).strip())
+            else:
+                locations.append("")
+        return locations
+
+    img_locations = _parse_image_locations(image_plan)
+
+    # 소제목에 이미지 매핑 (위치 힌트 → 소제목 텍스트 매칭)
     img_map = {}
     for i, img_path in enumerate(image_paths):
         layout = layouts[i] if i < len(layouts) else "full"
-        if i < len(heading_indices):
-            idx = heading_indices[i]
-        else:
-            spacing = len(lines) // (len(image_paths) + 1)
-            idx = min(spacing * (i + 1), len(lines) - 1)
-        if idx not in img_map:
-            img_map[idx] = []
-        img_map[idx].append((img_path, layout))
+        matched = False
+
+        # 위치 힌트가 있으면 소제목과 매칭 시도
+        if i < len(img_locations) and img_locations[i]:
+            hint = img_locations[i]
+            hint_clean = _re.sub(r'[^\w가-힣]', '', hint)
+            for h_idx, h_text in headings:
+                h_clean = _re.sub(r'[^\w가-힣]', '', h_text)
+                # 부분 매칭 (힌트가 소제목에 포함되거나 소제목이 힌트에 포함)
+                if hint_clean and h_clean and (hint_clean in h_clean or h_clean in hint_clean):
+                    if h_idx not in img_map:
+                        img_map[h_idx] = []
+                    img_map[h_idx].append((img_path, layout))
+                    matched = True
+                    break
+
+        # 매칭 실패 시 순번 기반 폴백
+        if not matched:
+            if i < len(headings):
+                idx = headings[i][0]
+            else:
+                spacing = len(lines) // (len(image_paths) + 1)
+                idx = min(spacing * (i + 1), len(lines) - 1)
+            if idx not in img_map:
+                img_map[idx] = []
+            img_map[idx].append((img_path, layout))
 
     # 렌더링
     content_buffer = []

@@ -71,10 +71,16 @@ def generate_image(prompt: str, filename: str = "image") -> dict:
         elif "webp" in mime_type:
             ext = "webp"
 
-        # 파일 저장
+        # 파일 저장 (10% 축소)
+        from PIL import Image
+        import io as _io
+        raw_bytes = base64.b64decode(image_data)
+        img = Image.open(_io.BytesIO(raw_bytes))
+        new_w = int(img.width * 0.9)
+        new_h = int(img.height * 0.9)
+        img = img.resize((new_w, new_h), Image.LANCZOS)
         save_path = IMAGE_DIR / f"{filename}.{ext}"
-        with open(save_path, "wb") as f:
-            f.write(base64.b64decode(image_data))
+        img.save(save_path, quality=92)
 
         return {
             "success": True,

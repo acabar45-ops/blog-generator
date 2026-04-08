@@ -148,6 +148,7 @@ defaults = {
     "selected_id": None,
     "search": "",
     "category_filter": "전체",
+    "platform_filter": "전체",
     "bulk_running": False,
     "api_key": CLAUDE_API_KEY,
     "platform_naver": True,
@@ -187,6 +188,9 @@ def done_count():
 
 def filtered_topics():
     result = get_topics()
+    if st.session_state.platform_filter != "전체":
+        pf = "naver" if st.session_state.platform_filter == "네이버" else "wordpress"
+        result = [t for t in result if t.get("platform") == pf]
     if st.session_state.category_filter != "전체":
         result = [t for t in result if t["category"] == st.session_state.category_filter]
     if st.session_state.search.strip():
@@ -589,6 +593,12 @@ with st.sidebar:
         "검색", value=st.session_state.search,
         placeholder="🔍 주제 검색...", label_visibility="collapsed",
     )
+    pf = st.radio(
+        "플랫폼",
+        ["전체", "네이버", "워드프레스"],
+        horizontal=True, label_visibility="collapsed",
+    )
+    st.session_state.platform_filter = pf
     cat = st.radio(
         "카테고리",
         ["전체", "실무팁", "도입사례", "트렌드", "자동화"],
@@ -596,8 +606,10 @@ with st.sidebar:
     )
     st.session_state.category_filter = cat
 
+    naver_count = len([t for t in TOPICS if t.get("platform") == "naver"])
+    wp_count = len([t for t in TOPICS if t.get("platform") == "wordpress"])
     dc = done_count()
-    st.caption(f"완료 {dc} / {TOTAL}개")
+    st.caption(f"완료 {dc}/{TOTAL} | 📝네이버 {naver_count} · 🌐워드프레스 {wp_count}")
     st.divider()
 
     # 주제 목록
@@ -605,7 +617,8 @@ with st.sidebar:
     with topic_container:
         for t in filtered_topics():
             status = "✅" if is_done(t["id"]) else "⬜"
-            label = f'{status} {t["id"]:03d}. {t["title"]}'
+            picon = "📝" if t.get("platform") == "naver" else "🌐"
+            label = f'{status}{picon} {t["id"]:03d}. {t["title"]}'
             is_sel = st.session_state.selected_id == t["id"]
             if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
                          type="primary" if is_sel else "secondary"):
@@ -851,17 +864,19 @@ elif st.session_state.page == "all_view":
             continue
         if filter_view == "미완료만" and done:
             continue
-        c1, c2, c3, c4 = st.columns([0.5, 7, 1.5, 1.5])
+        c1, c2, c3, c4, c5 = st.columns([0.5, 6, 1, 1.5, 1.5])
         c1.caption(f"{t['id']:03d}")
         c2.caption(t["title"])
-        c3.markdown(f'<span class="badge badge-{t["category"]}">{t["category"]}</span>', unsafe_allow_html=True)
+        picon = "📝" if t.get("platform") == "naver" else "🌐"
+        c3.caption(picon)
+        c4.markdown(f'<span class="badge badge-{t["category"]}">{t["category"]}</span>', unsafe_allow_html=True)
         if done:
-            if c4.button("보기", key=f"v_{t['id']}", use_container_width=True):
+            if c5.button("보기", key=f"v_{t['id']}", use_container_width=True):
                 st.session_state.selected_id = t["id"]
                 st.session_state.page = "main"
                 st.rerun()
         else:
-            if c4.button("생성", key=f"g_{t['id']}", use_container_width=True):
+            if c5.button("생성", key=f"g_{t['id']}", use_container_width=True):
                 st.session_state.selected_id = t["id"]
                 st.session_state.page = "main"
                 st.rerun()
@@ -910,10 +925,14 @@ else:
 
 
         # 메트릭
+        naver_topics = [t for t in TOPICS if t.get("platform") == "naver"]
+        wp_topics = [t for t in TOPICS if t.get("platform") == "wordpress"]
+        naver_done = sum(1 for t in naver_topics if is_done(t["id"]))
+        wp_done = sum(1 for t in wp_topics if is_done(t["id"]))
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("전체 주제", f"{TOTAL}개")
-        c2.metric("완료", f"{done_count()}개")
-        c3.metric("미완료", f"{TOTAL - done_count()}개")
+        c1.metric("📝 네이버", f"{naver_done}/{len(naver_topics)}")
+        c2.metric("🌐 워드프레스", f"{wp_done}/{len(wp_topics)}")
+        c3.metric("전체 완료", f"{done_count()}/{TOTAL}")
         c4.metric("완료율", f"{int(done_count() / TOTAL * 100) if TOTAL > 0 else 0}%")
 
         # 커스텀 주제 실행
@@ -971,41 +990,37 @@ else:
     # ── 에이전트 선택 (주제 상세 페이지에서도 항상 표시) ──
     # ── 미생성: 둘 다 없을 때 ──
     if not blog.get("final") and not blog.get("wordpress"):
-        st.info("아직 생성되지 않은 주제입니다.")
-        gen_col1, gen_col2 = st.columns(2)
-        with gen_col1:
-            do_naver = st.button("📝 네이버 생성", type="primary", use_container_width=True)
-        with gen_col2:
-            do_wp = st.button("🌐 워드프레스 생성", use_container_width=True)
+        topic_platform = topic.get("platform", "naver")
+        platform_label = "📝 네이버 블로그" if topic_platform == "naver" else "🌐 워드프레스"
+        st.info(f"아직 생성되지 않은 주제입니다. ({platform_label} 전용)")
 
-        if do_naver:
+        do_gen = st.button(f"✨ {platform_label} 생성", type="primary", use_container_width=True)
+
+        if do_gen:
             if not check_api_key():
                 st.stop()
-            with st.status("🍎 Apple 파이프라인 — 네이버 블로그 생성 중...", expanded=True) as s:
+            with st.status(f"🍎 파이프라인 — {platform_label} 생성 중...", expanded=True) as s:
                 result = pipeline.run_pipeline(
-                    topic["title"], cid, "naver",
+                    topic["title"], cid, topic_platform,
                     status_callback=lambda msg: st.write(msg)
                 )
-                naver = result["blog"]
-                footer = gen.generate_blog_footer(naver, cid)
-                naver = naver + "\n" + footer
+                blog_text = result["blog"]
+                footer = gen.generate_blog_footer(blog_text, cid)
+                blog_text = blog_text + "\n" + footer
                 qa_score = result.get("qa_score", 0)
                 img_prompts = result.get("image_prompts", "")
-                blog_data = dict(naver=naver, final=naver,
-                                 agents=["pipeline_7"], qa_score=qa_score)
-                if img_prompts:
-                    blog_data["naver_images"] = img_prompts
+                if topic_platform == "naver":
+                    blog_data = dict(naver=blog_text, final=blog_text,
+                                     agents=["pipeline_7"], qa_score=qa_score)
+                    if img_prompts:
+                        blog_data["naver_images"] = img_prompts
+                else:
+                    blog_data = dict(wordpress=blog_text,
+                                     agents=["pipeline_7"], qa_score=qa_score)
+                    if img_prompts:
+                        blog_data["wp_images"] = img_prompts
                 update_blog(topic["id"], **blog_data)
                 s.update(label=f"✅ 파이프라인 완료! QA {qa_score}/80", state="complete")
-            if result.get("phase8"):
-                with st.expander("📈 성과 예측 & A/B 변형"):
-                    from agents import get_pipeline_agent as _gpa
-                    for k, v in result["phase8"].items():
-                        agent_info = _gpa(k)
-                        if agent_info:
-                            st.markdown(f"**{agent_info['icon']} {agent_info['name']}**")
-                        st.markdown(v)
-                        st.divider()
             st.rerun()
         st.stop()
 

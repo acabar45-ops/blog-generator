@@ -45,7 +45,7 @@ from config import CLAUDE_API_KEY
 CATEGORY_COLORS = {
     "실무팁": "#4A90D9",
     "도입사례": "#27AE60",
-    "트렌드": "#E67E22",
+    "트렌드": "#0071e3",
     "자동화": "#8E44AD",
 }
 
@@ -54,12 +54,9 @@ CATEGORY_COLORS = {
 # ── 스타일 ──
 st.markdown("""
 <style>
-html, body, [class*="css"] { font-size: 13px !important; }
-h1 { font-size: 1.4rem !important; }
-h2 { font-size: 1.2rem !important; }
-h3 { font-size: 1.05rem !important; }
-h4 { font-size: 0.95rem !important; }
-p, li, span, div { font-size: 13px; }
+/* 사이드바·위젯만 13px (블로그 미리보기에 영향 없도록) */
+section[data-testid="stSidebar"] { font-size: 13px; }
+section[data-testid="stSidebar"] * { font-size: inherit; }
 section[data-testid="stSidebar"] { width: 304px !important; }
 section[data-testid="stSidebar"] .stButton button {
     font-size: 11px !important; padding: 8px 9px 8px 4.8em !important;
@@ -79,19 +76,19 @@ section[data-testid="stSidebar"] .stButton button div {
 section[data-testid="stSidebar"] .stRadio label { font-size: 11px !important; padding: 2px 5px !important; }
 .badge { display: inline-block; padding: 1px 6px; border-radius: 8px;
          font-size: 10px; font-weight: bold; color: white; margin-left: 4px; vertical-align: middle; }
-.badge-실무팁 { background: #4A90D9; } .badge-도입사례 { background: #27AE60; }
-.badge-트렌드 { background: #E67E22; } .badge-자동화 { background: #8E44AD; }
-.advisor-box { background: #1a1a2e; border-left: 3px solid #E67E22; border-radius: 6px;
+.badge-실무팁 { background: #0071e3; } .badge-도입사례 { background: #34c759; }
+.badge-트렌드 { background: #5856d6; } .badge-자동화 { background: #af52de; }
+.advisor-box { background: #1a1a2e; border-left: 3px solid #0071e3; border-radius: 6px;
                padding: 12px 14px; margin: 8px 0; color: #f0f0f0; font-size: 12px;
                white-space: pre-wrap; line-height: 1.5; }
 .agent-card { background: #1e1e2e; border: 1px solid #333; border-radius: 8px;
               padding: 8px 10px; text-align: center; min-height: 100px;
               display: flex; flex-direction: column; justify-content: center; transition: all 0.2s; }
-.agent-card:hover { border-color: #E67E22; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(230,126,34,0.15); }
+.agent-card:hover { border-color: #0071e3; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(230,126,34,0.15); }
 .agent-card .field { font-size: 10px; color: #aaa; margin-bottom: 2px; }
 .agent-card .name { font-size: 12px; font-weight: bold; color: #fff; }
 .agent-card .icon { font-size: 16px; margin-bottom: 2px; }
-.agent-card .superpower { font-size: 9px; color: #E67E22; margin-top: 3px; line-height: 1.3; }
+.agent-card .superpower { font-size: 9px; color: #0071e3; margin-top: 3px; line-height: 1.3; }
 /* 이미지 팀 협업 애니메이션 */
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
@@ -102,13 +99,13 @@ section[data-testid="stSidebar"] .stRadio label { font-size: 11px !important; pa
 .collab-card .collab-name { font-size: 13px; font-weight: bold; color: #fff; }
 .collab-card .collab-role { font-size: 10px; color: #aaa; margin-top: 2px; }
 .collab-card .collab-career { font-size: 9px; color: #888; margin-top: 4px; line-height: 1.3; }
-.collab-arrow { text-align: center; font-size: 24px; color: #E67E22; animation: pulse 1.5s infinite; padding-top: 20px; }
+.collab-arrow { text-align: center; font-size: 24px; color: #0071e3; animation: pulse 1.5s infinite; padding-top: 20px; }
 .collab-step { background: linear-gradient(135deg, #1a1a2e, #2a1a3e); border: 1px solid #444;
                border-radius: 8px; padding: 10px 14px; margin: 6px 0; }
-.collab-step .step-label { font-size: 10px; color: #E67E22; font-weight: bold; letter-spacing: 1px; }
+.collab-step .step-label { font-size: 10px; color: #0071e3; font-weight: bold; letter-spacing: 1px; }
 .collab-step .step-desc { font-size: 11px; color: #ccc; margin-top: 3px; }
 .collab-progress { height: 3px; background: #333; border-radius: 2px; margin-top: 6px; overflow: hidden; }
-.collab-progress .bar { height: 100%; background: linear-gradient(90deg, #E67E22, #F39C12); animation: slideRight 2s ease-out; }
+.collab-progress .bar { height: 100%; background: linear-gradient(90deg, #0071e3, #34aadc); animation: slideRight 2s ease-out; }
 .img-placeholder { background: #1a1a2e; border: 1px dashed #555; border-radius: 6px;
                    padding: 10px 12px; margin: 8px 0; font-size: 11px; color: #ccc; line-height: 1.4; }
 .status-done { color: #27AE60; font-weight: bold; font-size: 11px; }
@@ -127,7 +124,7 @@ div[data-testid="stImageFullScreen"] button[aria-label="Close"],
 div[data-testid="stImageFullScreen"] button[kind="minimal"],
 div[data-baseweb="modal"] button[aria-label="Close"] {
     width: 48px !important; height: 48px !important;
-    background: rgba(230, 126, 34, 0.9) !important;
+    background: rgba(0, 113, 227, 0.9) !important;
     border-radius: 50% !important; border: none !important;
     color: #fff !important; font-size: 24px !important;
     top: 16px !important; right: 16px !important;
@@ -136,7 +133,7 @@ div[data-baseweb="modal"] button[aria-label="Close"] {
 }
 div[data-testid="stImageFullScreen"] button[aria-label="Close"]:hover,
 div[data-baseweb="modal"] button[aria-label="Close"]:hover {
-    background: rgba(230, 126, 34, 1) !important;
+    background: rgba(0, 113, 227, 1) !important;
     transform: scale(1.1);
 }
 </style>
@@ -253,7 +250,7 @@ def _collab_render(msg):
     m = msg.strip()
     # 구분선
     if m.startswith("━━━"):
-        st.markdown(f'<div style="background:linear-gradient(90deg,#E67E22,#F39C12); padding:6px 14px; border-radius:6px; margin:10px 0 6px; font-size:12px; font-weight:bold; color:#fff;">{m.replace("━━━","").strip()}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background:linear-gradient(90deg,#0071e3,#34aadc); padding:6px 14px; border-radius:6px; margin:10px 0 6px; font-size:12px; font-weight:bold; color:#fff;">{m.replace("━━━","").strip()}</div>', unsafe_allow_html=True)
     # 사람 입장
     elif m.startswith(("🏢 **", "💡 **", "🎨 **", "📊 **", "📐 **")):
         st.markdown(f'<div style="font-size:13px; font-weight:bold; margin-top:6px;">{m}</div>', unsafe_allow_html=True)
@@ -262,12 +259,12 @@ def _collab_render(msg):
         text = m[3:].strip()
         if text.startswith("_") and text.endswith("_"):
             # 인용문
-            st.markdown(f'<div style="font-size:11px; color:#E67E22; font-style:italic; margin-left:20px; margin-bottom:4px;">💬 {text[1:-1]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size:11px; color:#0071e3; font-style:italic; margin-left:20px; margin-bottom:4px;">💬 {text[1:-1]}</div>', unsafe_allow_html=True)
         else:
             st.markdown(f'<div style="font-size:10px; color:#999; margin-left:20px;">{text}</div>', unsafe_allow_html=True)
     # 토론 하이라이트 제목
     elif m.startswith("💬 **토론"):
-        st.markdown(f'<div style="font-size:12px; font-weight:bold; margin-top:8px; color:#F39C12;">💬 토론 하이라이트</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:12px; font-weight:bold; margin-top:8px; color:#34aadc;">💬 토론 하이라이트</div>', unsafe_allow_html=True)
     # 토론 발언
     elif m.startswith("  🏢") or m.startswith("  💡") or m.startswith("  📊") or m.startswith("  📐") or m.startswith("  🎨"):
         st.markdown(f'<div style="font-size:11px; margin-left:16px; margin-bottom:2px; color:#ddd; line-height:1.5;">{m.strip()}</div>', unsafe_allow_html=True)
@@ -282,7 +279,7 @@ def _collab_render(msg):
         st.markdown(f'<div style="font-size:10px; margin-left:16px; padding:2px 8px; background:#1a1a2e; border-left:2px solid #4A90D9; border-radius:4px; color:#7EB5E5; margin-bottom:6px;">{m.strip()}</div>', unsafe_allow_html=True)
     # 스코어보드
     elif m.startswith("🏆"):
-        st.markdown(f'<div style="font-size:13px; padding:8px 14px; background:linear-gradient(135deg,#2e1a00,#1a1a2e); border:1px solid #E67E22; border-radius:8px; text-align:center; margin:6px 0;">{m}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:13px; padding:8px 14px; background:linear-gradient(135deg,#2e1a00,#1a1a2e); border:1px solid #0071e3; border-radius:8px; text-align:center; margin:6px 0;">{m}</div>', unsafe_allow_html=True)
     # 완료
     elif m.startswith("✅"):
         st.markdown(f'<div style="font-size:12px; font-weight:bold; color:#27AE60; margin-top:6px;">{m}</div>', unsafe_allow_html=True)
@@ -315,11 +312,76 @@ def _parse_image_layouts(image_plan):
             layouts.append("full")  # 기본값
     return layouts
 
+# ── Apple 미학 CSS (블로그 미리보기 전용) ──
+APPLE_BLOG_CSS = """
+<style>
+  .apple-blog { font-family: -apple-system, 'Apple SD Gothic Neo', 'Pretendard', 'Noto Sans KR', sans-serif;
+    max-width: 680px; margin: 0 auto; padding: 20px 16px; line-height: 1.9;
+    color: #1d1d1f; font-size: 15px; letter-spacing: -0.022em;
+    -webkit-font-smoothing: antialiased; }
+  .apple-blog h1 { font-size: 32px; font-weight: 700; margin: 40px 0 16px; color: #1d1d1f;
+    letter-spacing: -0.03em; line-height: 1.25; }
+  .apple-blog h2 { font-size: 24px; font-weight: 600; margin: 36px 0 12px; color: #1d1d1f;
+    letter-spacing: -0.02em; line-height: 1.3; }
+  .apple-blog h3 { font-size: 19px; font-weight: 600; margin: 28px 0 8px; color: #1d1d1f;
+    letter-spacing: -0.01em; line-height: 1.35; }
+  .apple-blog p { margin: 14px 0; color: #1d1d1f; font-size: 15px; }
+  .apple-blog li { margin: 8px 0 8px 24px; color: #1d1d1f; font-size: 15px; }
+  .apple-blog strong { color: #1d1d1f; font-weight: 600; }
+  .apple-blog blockquote { border-left: 3px solid #d2d2d7; margin: 20px 0; padding: 0 16px; color: #6e6e73; }
+  .apple-blog hr { border: none; border-top: 1px solid #d2d2d7; margin: 32px 0; }
+  .apple-blog img { border-radius: 12px; display: block; margin: 24px auto; }
+</style>
+"""
+
+def _md_to_preview_html(text):
+    """마크다운 → 인라인 스타일 HTML (Streamlit 미리보기 전용)"""
+    import re as _re
+    S_H1 = 'style="font-size:32px !important;font-weight:700 !important;margin:40px 0 16px !important;color:#1d1d1f;letter-spacing:-0.03em;line-height:1.25 !important;"'
+    S_H2 = 'style="font-size:24px !important;font-weight:600 !important;margin:36px 0 12px !important;color:#1d1d1f;letter-spacing:-0.02em;line-height:1.3 !important;"'
+    S_H3 = 'style="font-size:19px !important;font-weight:600 !important;margin:28px 0 8px !important;color:#1d1d1f;letter-spacing:-0.01em;line-height:1.35 !important;"'
+    S_P  = 'style="font-size:15px !important;margin:14px 0;color:#1d1d1f;line-height:1.9;"'
+    S_LI = 'style="font-size:15px !important;margin:8px 0 8px 24px;color:#1d1d1f;line-height:1.9;"'
+    S_BQ = 'style="border-left:3px solid #d2d2d7;margin:20px 0;padding:0 16px;color:#6e6e73;"'
+    S_HR = 'style="border:none;border-top:1px solid #d2d2d7;margin:32px 0;"'
+    S_B  = 'style="font-weight:600 !important;color:#1d1d1f;"'
+
+    def bold(t):
+        return _re.sub(r'\*\*(.+?)\*\*', rf'<strong {S_B}>\1</strong>', t)
+
+    lines = text.split("\n")
+    html_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("### "):
+            html_lines.append(f'<div {S_H3}>{bold(stripped[4:])}</div>')
+        elif stripped.startswith("## "):
+            html_lines.append(f'<div {S_H2}>{bold(stripped[3:])}</div>')
+        elif stripped.startswith("# "):
+            html_lines.append(f'<div {S_H1}>{bold(stripped[2:])}</div>')
+        elif stripped.startswith("> "):
+            html_lines.append(f'<div {S_BQ}><div {S_P}>{bold(stripped[2:])}</div></div>')
+        elif stripped == "---":
+            html_lines.append(f'<hr {S_HR}>')
+        elif stripped.startswith("- "):
+            html_lines.append(f'<div {S_LI}>• {bold(stripped[2:])}</div>')
+        elif stripped == "":
+            html_lines.append('<div style="height:12px;"></div>')
+        else:
+            html_lines.append(f'<div {S_P}>{bold(stripped)}</div>')
+    return "\n".join(html_lines)
+
+def render_blog_preview(blog_content):
+    """블로그 마크다운을 인라인 스타일 HTML로 미리보기"""
+    body = _md_to_preview_html(blog_content)
+    wrapper = f'<div style="font-family:-apple-system,Apple SD Gothic Neo,Pretendard,Noto Sans KR,sans-serif;max-width:680px;margin:0 auto;padding:20px 16px;-webkit-font-smoothing:antialiased;">{body}</div>'
+    st.html(wrapper)
+
 def render_blog_with_images(blog_content, image_plan, image_paths, platform="naver"):
     """소제목(##) 바로 아래에 이미지를 배치. 워드프레스는 레이아웃 반영."""
     import re as _re
     if not image_paths or not image_plan:
-        st.markdown(blog_content)
+        render_blog_preview(blog_content)
         return
 
     lines = blog_content.split("\n")
@@ -350,7 +412,7 @@ def render_blog_with_images(blog_content, image_plan, image_paths, platform="nav
     for li, line in enumerate(lines):
         content_buffer.append(line)
         if li in img_map:
-            st.markdown("\n".join(content_buffer))
+            render_blog_preview("\n".join(content_buffer))
             content_buffer = []
             for img_path, layout in img_map[li]:
                 if platform == "naver" or layout == "full":
@@ -378,7 +440,7 @@ def render_blog_with_images(blog_content, image_plan, image_paths, platform="nav
                     st.image(img_path, width=550)
 
     if content_buffer:
-        st.markdown("\n".join(content_buffer))
+        render_blog_preview("\n".join(content_buffer))
 
 def build_html_with_images(blog_content, image_plan, image_paths, platform="naver", title="블로그"):
     """블로그 글 + 이미지를 base64 임베드한 단일 HTML 파일 생성"""
@@ -406,12 +468,17 @@ def build_html_with_images(blog_content, image_plan, image_paths, platform="nave
                 html_lines.append(f"<h2>{stripped[3:]}</h2>")
             elif stripped.startswith("# "):
                 html_lines.append(f"<h1>{stripped[2:]}</h1>")
+            elif stripped.startswith("> "):
+                quote_text = _re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', stripped[2:])
+                html_lines.append(f"<blockquote><p>{quote_text}</p></blockquote>")
+            elif stripped == "---":
+                html_lines.append("<hr>")
             elif stripped.startswith("- "):
-                html_lines.append(f"<li>{stripped[2:]}</li>")
+                item_text = _re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', stripped[2:])
+                html_lines.append(f"<li>{item_text}</li>")
             elif stripped == "":
                 html_lines.append("<br>")
             else:
-                # 볼드 처리
                 stripped = _re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', stripped)
                 html_lines.append(f"<p>{stripped}</p>")
         return "\n".join(html_lines)
@@ -446,8 +513,14 @@ def build_html_with_images(blog_content, image_plan, image_paths, platform="nave
             body_parts.append(f"<h2>{stripped[3:]}</h2>")
         elif stripped.startswith("# "):
             body_parts.append(f"<h1>{stripped[2:]}</h1>")
+        elif stripped.startswith("> "):
+            quote_text = _re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', stripped[2:])
+            body_parts.append(f"<blockquote><p>{quote_text}</p></blockquote>")
+        elif stripped == "---":
+            body_parts.append("<hr>")
         elif stripped.startswith("- "):
-            body_parts.append(f"<li>{stripped[2:]}</li>")
+            item_text = _re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', stripped[2:])
+            body_parts.append(f"<li>{item_text}</li>")
         elif stripped == "":
             body_parts.append("<br>")
         else:
@@ -469,11 +542,11 @@ def build_html_with_images(blog_content, image_plan, image_paths, platform="nave
                 elif layout in ("side-left", "side-right"):
                     w = "45%"
                     fl = "left" if layout == "side-left" else "right"
-                    body_parts.append(f'<img src="{b64}" style="width:{w}; float:{fl}; margin:10px; border-radius:8px;">')
+                    body_parts.append(f'<img src="{b64}" style="width:{w}; float:{fl}; margin:12px 20px 12px 0; border-radius:12px;">')
                     continue
                 else:
                     w = "100%"
-                body_parts.append(f'<div style="text-align:center; margin:16px 0;"><img src="{b64}" style="width:{w}; max-width:700px; border-radius:8px;"></div>')
+                body_parts.append(f'<div style="text-align:center; margin:32px 0;"><img src="{b64}" style="width:{w}; max-width:680px; border-radius:12px;"></div>')
 
     body_html = "\n".join(body_parts)
 
@@ -484,20 +557,28 @@ def build_html_with_images(blog_content, image_plan, image_paths, platform="nave
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title}</title>
 <style>
-  body {{ font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-         max-width: 720px; margin: 0 auto; padding: 24px; line-height: 1.8;
-         color: #222; background: #fff; font-size: 16px; }}
-  h1 {{ font-size: 24px; font-weight: 700; margin: 32px 0 16px; color: #111; }}
-  h2 {{ font-size: 20px; font-weight: 600; margin: 28px 0 12px; color: #222;
-       border-bottom: 2px solid #E67E22; padding-bottom: 6px; }}
-  h3 {{ font-size: 17px; font-weight: 600; margin: 20px 0 8px; color: #333; }}
-  p {{ margin: 6px 0; }}
-  li {{ margin: 4px 0 4px 20px; }}
-  strong {{ color: #E67E22; }}
-  img {{ box-shadow: 0 2px 12px rgba(0,0,0,0.1); }}
+  body {{ font-family: -apple-system, 'Apple SD Gothic Neo', 'Pretendard', 'Noto Sans KR', sans-serif;
+         max-width: 680px; margin: 0 auto; padding: 40px 24px; line-height: 1.9;
+         color: #1d1d1f; background: #fff; font-size: 17px; letter-spacing: -0.022em;
+         -webkit-font-smoothing: antialiased; }}
+  h1 {{ font-size: 36px; font-weight: 700; margin: 48px 0 20px; color: #1d1d1f;
+       letter-spacing: -0.03em; line-height: 1.25; }}
+  h2 {{ font-size: 28px; font-weight: 600; margin: 40px 0 16px; color: #1d1d1f;
+       letter-spacing: -0.02em; line-height: 1.3; }}
+  h3 {{ font-size: 22px; font-weight: 600; margin: 32px 0 12px; color: #1d1d1f;
+       letter-spacing: -0.01em; line-height: 1.35; }}
+  p {{ margin: 16px 0; color: #1d1d1f; }}
+  li {{ margin: 10px 0 10px 24px; color: #1d1d1f; }}
+  strong {{ color: #1d1d1f; font-weight: 600; }}
+  blockquote {{ border-left: 3px solid #d2d2d7; margin: 24px 0; padding: 0 20px;
+               color: #6e6e73; font-style: normal; }}
+  hr {{ border: none; border-top: 1px solid #d2d2d7; margin: 36px 0; }}
+  img {{ border-radius: 12px; }}
   @media (max-width: 600px) {{
-    body {{ padding: 12px; font-size: 14px; }}
+    body {{ padding: 24px 16px; font-size: 15px; }}
     img {{ width: 100% !important; }}
+    h1 {{ font-size: 28px; margin: 36px 0 16px; }}
+    h2 {{ font-size: 24px; margin: 32px 0 12px; }}
   }}
 </style>
 </head>
@@ -730,7 +811,7 @@ elif st.session_state.page == "company_edit":
 하우스맨은 2011년부터 서울 주요 상권의 상업용 건물을 위탁 관리해온 전문 기업입니다.
 15년간 축적한 현장 경험과 자체 개발한 건물관리 자동화 시스템을 결합하여...
 
-팀 규모는 8명이고, 50개 이상의 건물을 관리하고 있습니다.
+100개 이상의 건물을 관리하고 있습니다.
 주요 고객사는 포르쉐코리아, 이브릿지, 미트박스 등입니다.
 
 핵심 강점:
@@ -971,9 +1052,9 @@ else:
                         continue
                     a = next((x for x in AGENTS if x["id"] == aid), None)
                     if a:
-                        st.markdown(f"""<div style="background:#1a1a2e; border-left:3px solid #E67E22; border-radius:6px; padding:8px 12px; margin:4px 0; font-size:11px;">
+                        st.markdown(f"""<div style="background:#1a1a2e; border-left:3px solid #0071e3; border-radius:6px; padding:8px 12px; margin:4px 0; font-size:11px;">
                         <b>{a['icon']} {a['name']}</b> · {a['field']}<br>
-                        <span style="color:#E67E22;">⚡ {a.get('superpower','')}</span><br>
+                        <span style="color:#0071e3;">⚡ {a.get('superpower','')}</span><br>
                         <span style="color:#999;">{a.get('bio','')}</span>
                         </div>""", unsafe_allow_html=True)
         else:
@@ -1010,12 +1091,12 @@ else:
 
             if results.get("naver"):
                 st.markdown("##### 📝 네이버 블로그")
-                st.markdown(results["naver"])
+                render_blog_preview(results["naver"])
                 with st.expander("📋 복사"):
                     st.code(results["naver"], language=None)
             if results.get("wordpress"):
                 st.markdown("##### 🌐 워드프레스")
-                st.markdown(results["wordpress"])
+                render_blog_preview(results["wordpress"])
                 with st.expander("📋 복사"):
                     st.code(results["wordpress"], language=None)
 
@@ -1190,7 +1271,7 @@ else:
                 st.markdown("###### 📖 글 + 이미지 미리보기")
                 render_blog_with_images(blog["final"], blog["naver_images"], naver_img_paths)
             else:
-                st.markdown(blog["final"])
+                render_blog_preview(blog["final"])
 
             with st.expander("📋 텍스트만 복사"):
                 st.code(blog["final"], language=None)
@@ -1393,7 +1474,7 @@ else:
                 st.markdown("###### 📖 글 + 이미지 미리보기")
                 render_blog_with_images(blog["wordpress"], blog["wp_images"], wp_img_paths, platform="wordpress")
             else:
-                st.markdown(blog["wordpress"])
+                render_blog_preview(blog["wordpress"])
 
             with st.expander("📋 텍스트만 복사"):
                 st.code(blog["wordpress"], language=None)

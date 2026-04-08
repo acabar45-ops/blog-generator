@@ -29,64 +29,56 @@ def generate_image(prompt: str, filename: str = "image") -> dict:
         return {"success": False, "error": "Gemini API 키가 설정되지 않았습니다."}
 
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key={GEMINI_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-ultra-generate-001:predict?key={GEMINI_API_KEY}"
 
         headers = {"Content-Type": "application/json"}
 
         payload = {
-            "contents": [
-                {
-                    "parts": [
-                        {
-                            "text": f"Generate a realistic image based on this description. Do NOT include any text or watermarks in the image.\n\nDescription: {prompt}"
-                        }
-                    ]
-                }
+            "instances": [
+                {"prompt": prompt}
             ],
-            "generationConfig": {
-                "responseModalities": ["TEXT", "IMAGE"]
+            "parameters": {
+                "sampleCount": 1,
+                "aspectRatio": "16:9"
             }
         }
 
-        response = requests.post(url, headers=headers, json=payload, timeout=60)
+        response = requests.post(url, headers=headers, json=payload, timeout=120)
 
         if response.status_code != 200:
             return {"success": False, "error": f"API 오류 ({response.status_code}): {response.text[:200]}"}
 
         result = response.json()
 
-        # 이미지 데이터 추출
-        candidates = result.get("candidates", [])
-        if not candidates:
+        # Imagen 4 응답에서 이미지 추출
+        predictions = result.get("predictions", [])
+        if not predictions:
             return {"success": False, "error": "이미지 생성 결과가 없습니다."}
 
-        parts = candidates[0].get("content", {}).get("parts", [])
+        image_data = predictions[0].get("bytesBase64Encoded", "")
+        mime_type = predictions[0].get("mimeType", "image/png")
 
-        for part in parts:
-            if "inlineData" in part:
-                image_data = part["inlineData"]["data"]
-                mime_type = part["inlineData"].get("mimeType", "image/png")
+        if not image_data:
+            return {"success": False, "error": "이미지 데이터를 찾을 수 없습니다."}
 
-                # 확장자 결정
-                ext = "png"
-                if "jpeg" in mime_type or "jpg" in mime_type:
-                    ext = "jpg"
-                elif "webp" in mime_type:
-                    ext = "webp"
+        # 확장자 결정
+        ext = "png"
+        if "jpeg" in mime_type or "jpg" in mime_type:
+            ext = "jpg"
+        elif "webp" in mime_type:
+            ext = "webp"
 
-                # 파일 저장
-                save_path = IMAGE_DIR / f"{filename}.{ext}"
-                with open(save_path, "wb") as f:
-                    f.write(base64.b64decode(image_data))
+        # 파일 저장
+        save_path = IMAGE_DIR / f"{filename}.{ext}"
+        with open(save_path, "wb") as f:
+            f.write(base64.b64decode(image_data))
 
-                return {
-                    "success": True,
-                    "path": str(save_path),
-                    "prompt": prompt,
-                    "mime_type": mime_type,
-                }
-
-        return {"success": False, "error": "이미지 데이터를 찾을 수 없습니다."}
+        return {
+            "success": True,
+            "path": str(save_path),
+            "prompt": prompt,
+            "mime_type": mime_type,
+        }
 
     except requests.exceptions.Timeout:
         return {"success": False, "error": "API 요청 시간 초과 (60초)"}

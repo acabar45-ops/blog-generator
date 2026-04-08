@@ -2,3 +2,4 @@ streamlit>=1.55.0
 anthropic>=0.40.0
 google-cloud-aiplatform
 google-auth-oauthlib
+supabase>=2.0.0

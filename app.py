@@ -1024,7 +1024,8 @@ else:
                     blog_data["wp_images"] = img_prompts
             update_blog(topic["id"], **blog_data)
             s.update(label=f"✅ 파이프라인 완료! QA {qa_score}/80", state="complete")
-        st.rerun()
+        blog = get_blog(topic["id"])
+        is_already_done = True
 
     if not is_already_done:
         st.stop()

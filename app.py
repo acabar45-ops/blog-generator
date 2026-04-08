@@ -62,13 +62,13 @@ h4 { font-size: 0.95rem !important; }
 p, li, span, div { font-size: 13px; }
 section[data-testid="stSidebar"] { width: 304px !important; }
 section[data-testid="stSidebar"] .stButton button {
-    font-size: 11px !important; padding: 8px 9px 8px 4.2em !important;
+    font-size: 11px !important; padding: 8px 9px 8px 4.8em !important;
     text-align: left !important; white-space: normal !important;
     word-break: keep-all; line-height: 1.5;
     min-height: 48px !important;
     display: block !important;
     overflow: hidden;
-    text-indent: -3.5em;
+    text-indent: -4.0em;
     justify-content: flex-start !important; align-items: flex-start !important;
 }
 section[data-testid="stSidebar"] .stButton button p,

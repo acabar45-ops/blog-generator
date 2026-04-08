@@ -39,7 +39,7 @@ from company_manager import (
     get_or_create_default_company, generate_topics_for_company,
 )
 import generator as gen
-import imagen_client
+import gemini_client
 from config import CLAUDE_API_KEY
 
 CATEGORY_COLORS = {

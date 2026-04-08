@@ -148,7 +148,6 @@ defaults = {
     "selected_id": None,
     "search": "",
     "category_filter": "전체",
-    "platform_filter": "전체",
     "bulk_running": False,
     "api_key": CLAUDE_API_KEY,
     "platform_naver": True,
@@ -188,9 +187,6 @@ def done_count():
 
 def filtered_topics():
     result = get_topics()
-    if st.session_state.platform_filter != "전체":
-        pf = "naver" if st.session_state.platform_filter == "네이버" else "wordpress"
-        result = [t for t in result if t.get("platform") == pf]
     if st.session_state.category_filter != "전체":
         result = [t for t in result if t["category"] == st.session_state.category_filter]
     if st.session_state.search.strip():
@@ -586,6 +582,7 @@ with st.sidebar:
     st.divider()
 
     # 검색 + 필터
+    import random
     TOPICS = get_topics()
     TOTAL = len(TOPICS)
 
@@ -593,38 +590,33 @@ with st.sidebar:
         "검색", value=st.session_state.search,
         placeholder="🔍 주제 검색...", label_visibility="collapsed",
     )
-    pf = st.radio(
-        "플랫폼",
-        ["전체", "네이버", "워드프레스"],
-        horizontal=True, label_visibility="collapsed",
-    )
-    st.session_state.platform_filter = pf
-    cat = st.radio(
-        "카테고리",
-        ["전체", "실무팁", "도입사례", "트렌드", "자동화"],
-        horizontal=True, label_visibility="collapsed",
-    )
-    st.session_state.category_filter = cat
 
-    naver_count = len([t for t in TOPICS if t.get("platform") == "naver"])
-    wp_count = len([t for t in TOPICS if t.get("platform") == "wordpress"])
     dc = done_count()
-    st.caption(f"완료 {dc}/{TOTAL} | 📝네이버 {naver_count} · 🌐워드프레스 {wp_count}")
+    st.caption(f"완료 {dc}/{TOTAL}")
     st.divider()
 
-    # 주제 목록 (플랫폼별 분리)
-    topics_list = filtered_topics()
-    naver_topics = [t for t in topics_list if t.get("platform") == "naver"]
-    wp_topics = [t for t in topics_list if t.get("platform") == "wordpress"]
+    # 랜덤 추천 주제 (미생성 중 네이버 5 + 워드프레스 5)
+    def _pick_random_topics():
+        all_naver = [t for t in TOPICS if t.get("platform") == "naver" and not is_done(t["id"])]
+        all_wp = [t for t in TOPICS if t.get("platform") == "wordpress" and not is_done(t["id"])]
+        random.shuffle(all_naver)
+        random.shuffle(all_wp)
+        return all_naver[:5], all_wp[:5]
 
-    topic_container = st.container(height=450)
+    if "rand_naver" not in st.session_state or "rand_wp" not in st.session_state:
+        st.session_state.rand_naver, st.session_state.rand_wp = _pick_random_topics()
+
+    if st.button("🔄 다른 주제 추천", use_container_width=True):
+        st.session_state.rand_naver, st.session_state.rand_wp = _pick_random_topics()
+        st.rerun()
+
+    topic_container = st.container(height=420)
     with topic_container:
-        if st.session_state.platform_filter in ("전체", "네이버") and naver_topics:
-            naver_done = sum(1 for t in naver_topics if is_done(t["id"]))
-            st.caption(f"📝 네이버 블로그 ({naver_done}/{len(naver_topics)})")
-            for t in naver_topics:
-                status = "✅" if is_done(t["id"]) else "⬜"
-                label = f'{status} {t["id"]:03d}. {t["title"]}'
+        # 네이버 추천
+        if st.session_state.rand_naver:
+            st.caption(f"📝 네이버 블로그 추천 ({len(st.session_state.rand_naver)}개)")
+            for t in st.session_state.rand_naver:
+                label = f'⬜ {t["id"]:03d}. {t["title"]}'
                 is_sel = st.session_state.selected_id == t["id"]
                 if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
                              type="primary" if is_sel else "secondary"):
@@ -632,14 +624,13 @@ with st.sidebar:
                     st.session_state.page = "main"
                     st.rerun()
 
-        if st.session_state.platform_filter in ("전체", "워드프레스") and wp_topics:
-            if naver_topics and st.session_state.platform_filter == "전체":
-                st.divider()
-            wp_done = sum(1 for t in wp_topics if is_done(t["id"]))
-            st.caption(f"🌐 워드프레스 ({wp_done}/{len(wp_topics)})")
-            for t in wp_topics:
-                status = "✅" if is_done(t["id"]) else "⬜"
-                label = f'{status} {t["id"]:03d}. {t["title"]}'
+        st.divider()
+
+        # 워드프레스 추천
+        if st.session_state.rand_wp:
+            st.caption(f"🌐 워드프레스 추천 ({len(st.session_state.rand_wp)}개)")
+            for t in st.session_state.rand_wp:
+                label = f'⬜ {t["id"]:03d}. {t["title"]}'
                 is_sel = st.session_state.selected_id == t["id"]
                 if st.button(label, key=f"topic_{t['id']}", use_container_width=True,
                              type="primary" if is_sel else "secondary"):

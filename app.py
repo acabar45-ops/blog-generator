@@ -304,7 +304,7 @@ def render_blog_with_images(blog_content, image_plan, image_paths, platform="nav
                         _img_data = _b64.b64encode(_f.read()).decode()
                     _ext = img_path.rsplit(".", 1)[-1]
                     _mime = f"image/{'jpeg' if _ext == 'jpg' else _ext}"
-                    st.html(f'<div style="text-align:center;margin:16px 0;"><img src="data:{_mime};base64,{_img_data}" style="max-width:100%;border-radius:8px;"></div>')
+                    st.html(f'<div style="text-align:center;margin:16px 0;"><img src="data:{_mime};base64,{_img_data}" style="max-width:85%;border-radius:8px;"></div>')
                 except Exception:
                     st.image(img_path)
 
@@ -403,7 +403,7 @@ def build_html_with_images(blog_content, image_plan, image_paths, platform="nave
                 if not b64:
                     continue
                 if platform == "naver" or layout == "full":
-                    w = "100%"
+                    w = "85%"
                 elif layout == "large":
                     w = "85%"
                 elif layout == "medium":

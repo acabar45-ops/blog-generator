@@ -755,35 +755,36 @@ if blog_content:
         for aid in used_agents:
             if aid in ("pipeline_7", "pipeline_23"):
                 names.append("🍎파이프라인")
-        st.caption(f"참여 에이전트: {' · '.join(names)}")
+        if names:
+            st.caption(f"참여 에이전트: {' · '.join(names)}")
 
     # 이미지가 있으면 글 사이사이에 이미지 삽입, 없으면 글만
-    naver_img_paths = get_generated_image_paths(topic["id"], "naver")
-    if naver_img_paths and blog.get("naver_images"):
+    img_paths = get_generated_image_paths(topic["id"], platform_for_img)
+    if img_paths and blog.get(img_key):
         st.markdown("###### 📖 글 + 이미지 미리보기")
-        render_blog_with_images(blog["final"], blog["naver_images"], naver_img_paths)
+        render_blog_with_images(blog_content, blog[img_key], img_paths, platform=platform_for_img)
     else:
-        render_blog_preview(blog["final"])
+        render_blog_preview(blog_content)
 
     with st.expander("📋 텍스트만 복사"):
-        st.code(blog["final"], language=None)
+        st.code(blog_content, language=None)
 
     # ── HTML 다운로드 버튼 ──
-    naver_dl_paths = get_generated_image_paths(topic["id"], "naver")
+    dl_img_paths = get_generated_image_paths(topic["id"], platform_for_img)
     html_data = build_html_with_images(
-        blog["final"],
-        blog.get("naver_images", ""),
-        naver_dl_paths,
-        platform="naver",
+        blog_content,
+        blog.get(img_key, ""),
+        dl_img_paths,
+        platform=platform_for_img,
         title=topic["title"],
     )
     st.download_button(
         label="📥 HTML 다운로드 (이미지 포함)",
         data=html_data.encode("utf-8"),
-        file_name=f"naver_{topic['id']:03d}_{topic['title'][:20]}.html",
+        file_name=f"{platform_for_img}_{topic['title'][:20]}.html",
         mime="text/html",
         use_container_width=True,
-        key="dl_naver_html",
+        key="dl_html",
     )
 
     st.divider()
@@ -797,7 +798,7 @@ if blog_content:
             st.warning("수정 요청을 입력해주세요.")
         elif check_api_key():
             with st.spinner("방향성 전환 중..."):
-                revised = gen.revise_with_comment(blog["final"], comment, "naver")
+                revised = gen.revise_with_comment(blog_content, comment, platform_for_img)
             update_blog(topic["id"], final=revised)
             st.rerun()
 
@@ -891,7 +892,7 @@ if blog_content:
                     agent_prompts = ""
                     def naver_regen_cb(msg):
                         st.write(msg)
-                    img_plan = gen.generate_image_plan(blog["final"], "naver", agent_prompts, cid, status_callback=naver_regen_cb)
+                    img_plan = gen.generate_image_plan(blog_content, platform_for_img, agent_prompts, cid, status_callback=naver_regen_cb)
                     update_blog(topic["id"], naver_images=img_plan)
                     s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
                 st.rerun()
@@ -905,7 +906,7 @@ if blog_content:
                     agent_prompts = ""
                     def naver_cb(msg):
                         st.write(msg)
-                    img_plan = gen.generate_image_plan(blog["final"], "naver", agent_prompts, cid, status_callback=naver_cb)
+                    img_plan = gen.generate_image_plan(blog_content, platform_for_img, agent_prompts, cid, status_callback=naver_cb)
                     update_blog(topic["id"], naver_images=img_plan)
                     s.update(label="✅ 이미지 배치 계획 완료!", state="complete")
                 st.rerun()
